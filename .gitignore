@@ -1,0 +1,32 @@
+# This repository is student-facing. It contains only what someone taking the course
+# needs in order to follow along: manifests, Helm values, HCL policies, scripts, sample
+# app code, and the diagram PNGs the lessons embed.
+#
+# Course authoring material does not belong here and is not kept here. It lives in a
+# separate private workspace. This file is a seatbelt, not the control: git history
+# still exposes anything that was ever committed, so the rule is that authoring material
+# never enters the working tree in the first place.
+#
+# Never in this repo: PRD or backlog exports, instructions files, internal planning
+# notes, .excalidraw sources, internal QA or validation scripts, credentials, draft or
+# scratch lesson content, or a solved capstone.
+
+*.excalidraw
+.taskmaster/
+instructions.md
+.internal/
+
+# Local cruft
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
+
+# Anything that looks like a credential
+.env
+.env.*
+*.pem
+*.key
+kubeconfig
+*-kubeconfig.yaml
