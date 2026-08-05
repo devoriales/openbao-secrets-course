@@ -1,0 +1,29 @@
+global:
+  tlsDisable: true
+server:
+  image: { repository: openbao/openbao, tag: "2.6.1" }
+  extraSecretEnvironmentVars:
+    - envName: BAO_TOKEN
+      secretName: unsealer-token
+      secretKey: token
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+      listener "tcp" {
+        address     = "[::]:8200"
+        tls_disable = 1
+      }
+      storage "file" { path = "/openbao/data" }
+
+      # The seal stanza is what makes this instance auto-unseal. The root key is
+      # wrapped by a Transit key living in a completely separate OpenBao.
+      seal "transit" {
+        address    = "http://unsealer-openbao.openbao-unsealer.svc.cluster.local:8200"
+        key_name   = "autounseal"
+        mount_path = "transit/"
+      }
+  dataStorage: { enabled: true, size: 1Gi }
+  readinessProbe: { enabled: true }
+  livenessProbe: { enabled: false }
+injector: { enabled: false }
