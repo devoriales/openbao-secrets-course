@@ -16,7 +16,7 @@ not from documentation or memory. Nothing here is a floating `latest` tag.
 | cert-manager | `v1.21.1` | `api.github.com/repos/cert-manager/cert-manager/releases/latest` |
 | PostgreSQL | `postgres:18.4-trixie` | Docker Hub `library/postgres` |
 | Garage (S3-compatible target) | `v2.3.0`, image `dxflrs/garage:v2.3.0` | `github.com/deuxfleurs-org/garage` tags + Docker Hub |
-| SoftHSM2 | upstream `2.6.1`, Debian trixie package `2.6.1-3` | `sources.debian.org/api/src/softhsm2` |
+| SoftHSM2 | Debian trixie package `2.6.1-3` (upstream is `2.7.0`, see note) | `github.com/opendnssec/SoftHSMv2` + `sources.debian.org` |
 | External Secrets Operator | operator `v2.8.0`, chart `2.8.0` | `api.github.com/repos/external-secrets/external-secrets/releases` |
 | Go | `go1.26.5` | `go.dev/dl/?mode=json` |
 | OpenBao Go API module | `github.com/openbao/openbao/api/v2` `v2.6.0` | `proxy.golang.org` |
@@ -66,6 +66,15 @@ GitHub releases, and the canonical repository is `git.deuxfleurs.fr/Deuxfleurs/g
 comes from the mirror's git tags plus the Docker Hub image tag rather than from a releases API like
 every other entry here. And it is **AGPL-3.0**, which is unremarkable for running it yourself in a
 lab, but worth knowing rather than discovering.
+
+**SoftHSM2 is pinned to what Debian ships, not to upstream.** Lesson 3.3 installs SoftHSM2 from the
+distribution package inside a container, so `2.6.1-3` from Debian trixie is what you actually get.
+Upstream `opendnssec/SoftHSMv2` is further ahead at `2.7.0` (January 2026) and actively maintained.
+Pinning the package your package manager installs is the right call for reproducibility; the gap is
+stated here so it is not a surprise.
+
+Note also that SoftHSM2's version string `2.6.1` happens to be identical to OpenBao's. They are
+unrelated, and Lesson 3.3 puts both in the same commands.
 
 ## Re-validation
 
