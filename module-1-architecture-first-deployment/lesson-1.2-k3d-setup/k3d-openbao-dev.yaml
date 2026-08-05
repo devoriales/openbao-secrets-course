@@ -1,0 +1,66 @@
+# Canonical cluster for the OpenBao Secrets Management course.
+# Every lesson from here on assumes this cluster exists.
+#
+# k3d 5.9.0 accepts config schema v1alpha5. Do not bump the schema without
+# checking that your k3d version still supports it.
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+
+metadata:
+  name: openbao-dev
+
+# One server plus two agents. Module 3 runs a 3-node Raft cluster, and OpenBao's
+# anti-affinity wants its replicas on distinct nodes, so two agents is a floor
+# rather than a preference.
+servers: 1
+agents: 2
+
+# Pinned deliberately. k3d 5.9.0's own default is v1.35.5-k3s1, which is NOT the
+# version this course was validated against, so the image must be stated here.
+image: rancher/k3s:v1.36.2-k3s1
+
+ports:
+  # Traefik ships with k3s and stays enabled. These publish it on the host.
+  #
+  # 8880 and 8843 rather than the conventional 8080 and 8443: 8080 in particular
+  # is occupied on a lot of developer machines already, and a port clash here
+  # fails the whole cluster creation and rolls it back, which reads as a much
+  # bigger problem than it is.
+  - port: 8880:80
+    nodeFilters:
+      - loadbalancer
+  - port: 8843:443
+    nodeFilters:
+      - loadbalancer
+
+registries:
+  # A local registry so you can push sample application images in later lessons
+  # without needing an account anywhere.
+  #
+  # Port 5050, NOT the registry-conventional 5000. On macOS, port 5000 is bound
+  # by Control Center for the AirPlay Receiver on a default install, so a config
+  # using 5000 fails for essentially every Mac student.
+  create:
+    name: registry.localhost
+    host: "0.0.0.0"
+    hostPort: "5050"
+
+options:
+  k3d:
+    wait: true
+    timeout: "300s"
+  kubeconfig:
+    updateDefaultKubeconfig: true
+    switchCurrentContext: true
+
+# Note on storage, and why there is no host volume mount here.
+#
+# It is tempting to bind-mount a host directory onto /var/lib/rancher/k3s/storage
+# so that PersistentVolume data survives `k3d cluster delete`. Do not do that for
+# this course. OpenBao writes its barrier to a PVC, and surviving barrier data
+# means a freshly rebuilt cluster comes up already initialized, holding a keyring
+# encrypted under unseal keys that were printed to a terminal you have since
+# closed. You would be locked out of your own lab with no way to recover it.
+#
+# Leaving storage inside the node containers makes teardown total and rebuild
+# predictable, which is what you want when you are going to do it many times.
