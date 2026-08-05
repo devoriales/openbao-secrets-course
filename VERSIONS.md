@@ -3,7 +3,14 @@
 Every version below was resolved against the authoritative source named in the last column,
 not from documentation or memory. Nothing here is a floating `latest` tag.
 
-**Verification date: 2026-08-04.** Baseline: OpenBao **v2.6.1**, Helm chart **openbao-0.28.6**.
+**Verification date: 2026-08-05.** Baseline: OpenBao **v2.6.1**, Helm chart **openbao-0.28.6**.
+
+**Validated on macOS (Apple silicon).** Every lab in this course was executed on macOS arm64
+with Colima or Docker Desktop. Linux and WSL2 are supported and the artifacts are written for
+them (POSIX shell, an `ss` fallback where `lsof` is absent, per-platform install paths with
+verified checksums), but they have not been executed there. If you hit a platform-specific
+problem on Linux or WSL2, that is a gap in testing rather than a gap in intent, and an issue
+on the repository is welcome.
 
 | Component | Version | Source |
 |---|---|---|
