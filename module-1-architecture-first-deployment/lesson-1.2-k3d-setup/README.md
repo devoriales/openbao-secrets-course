@@ -40,7 +40,25 @@ docker exec <k3d-node> df -h /            # what the node actually sees
 docker system prune -a                    # reclaim it
 ```
 
-On Docker Desktop the disk limit is under **Settings > Resources**.
+Raising the ceiling depends on which runtime you use:
+
+**Docker Desktop.** Settings > Resources, raise the disk image size and the memory.
+
+**Colima.** The VM is sized at start time, so the change needs a restart. Disk can be grown
+but never shrunk, so overshoot rather than doing this twice:
+
+```bash
+colima list                               # find your running profile and its current size
+colima stop <profile>
+colima start <profile> --cpu 4 --memory 10 --disk 80
+```
+
+Colima's own default is 2 CPUs and 2 GiB of memory, which is well under what this course
+needs. If you created your profile a while ago for something else, check it before you start
+Module 3 rather than after.
+
+**Linux with native Docker.** No VM, so there is no separate limit. Your host disk and
+memory are what the cluster gets.
 
 ## Required tooling
 

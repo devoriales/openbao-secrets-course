@@ -54,7 +54,25 @@ if [ -n "$DOCKER_FREE_GB" ]; then
   if [ "$DOCKER_FREE_GB" -lt "$MIN_DOCKER_DISK_GB" ]; then
     warn "Docker VM has ${DOCKER_FREE_GB}GB free, recommended minimum is ${MIN_DOCKER_DISK_GB}GB."
     warn "Pods will be evicted with 'The node was low on resource: ephemeral-storage'."
-    warn "Reclaim with 'docker system prune -a', or raise the disk limit in Docker Desktop under Settings > Resources."
+    warn "Reclaim some with 'docker system prune -a'. To raise the ceiling:"
+    # The fix differs per runtime, and pointing a Colima user at Docker Desktop's
+    # settings panel is a dead end, so detect which one is actually in use.
+    #
+    # Gate on 'colima list' rather than 'colima status': with no profile argument
+    # 'colima status' reports on the profile named "default", which is very often
+    # stopped while a differently-named profile is the one actually running. That
+    # makes it exit non-zero and silently mis-detect the runtime.
+    profile=""
+    if command -v colima >/dev/null 2>&1; then
+      profile="$(colima list 2>/dev/null | awk '$2=="Running" {print $1; exit}')"
+    fi
+    if [ -n "$profile" ]; then
+      warn "  Colima detected (profile '${profile}'). Disk grows but never shrinks, and the VM must restart:"
+      warn "    colima stop ${profile:-default}"
+      warn "    colima start ${profile:-default} --cpu 4 --memory 10 --disk 80"
+    else
+      warn "  Docker Desktop: Settings > Resources, then raise the disk image size."
+    fi
   else
     ok "Docker VM disk: ${DOCKER_FREE_GB}GB free"
   fi
