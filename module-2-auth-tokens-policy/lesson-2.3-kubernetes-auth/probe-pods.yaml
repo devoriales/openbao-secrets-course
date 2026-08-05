@@ -1,0 +1,26 @@
+# Two identical pods differing only in ServiceAccount. That difference is the
+# entire point: the OpenBao role binds to a name, so one authenticates and the
+# other is refused with "service account name not authorized".
+apiVersion: v1
+kind: Pod
+metadata:
+  name: probe
+  namespace: production
+spec:
+  serviceAccountName: app-sa
+  containers:
+    - name: curl
+      image: curlimages/curl:8.11.1
+      command: ["sleep", "900"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: probe-wrong
+  namespace: production
+spec:
+  serviceAccountName: wrong-sa
+  containers:
+    - name: curl
+      image: curlimages/curl:8.11.1
+      command: ["sleep", "900"]
