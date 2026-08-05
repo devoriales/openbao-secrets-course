@@ -34,7 +34,7 @@ capstone/
 
 Have the pinned toolchain from [`VERSIONS.md`](../VERSIONS.md) installed, and a k3d cluster with
 enough headroom for an HA OpenBao cluster, a second OpenBao acting as the Transit unsealer,
-PostgreSQL, and MinIO running at the same time. Check the Docker VM's disk before you begin, not
+PostgreSQL, and Garage running at the same time. Check the Docker VM's disk before you begin, not
 after pods start getting evicted:
 
 ```bash

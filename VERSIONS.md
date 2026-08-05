@@ -15,7 +15,7 @@ not from documentation or memory. Nothing here is a floating `latest` tag.
 | Helm | `v3.21.3` | `api.github.com/repos/helm/helm/releases` |
 | cert-manager | `v1.21.1` | `api.github.com/repos/cert-manager/cert-manager/releases/latest` |
 | PostgreSQL | `postgres:18.4-trixie` | Docker Hub `library/postgres` |
-| MinIO | `RELEASE.2025-10-15T17-29-55Z` | `api.github.com/repos/minio/minio/releases/latest` |
+| Garage (S3-compatible target) | `v2.3.0`, image `dxflrs/garage:v2.3.0` | `github.com/deuxfleurs-org/garage` tags + Docker Hub |
 | SoftHSM2 | upstream `2.6.1`, Debian trixie package `2.6.1-3` | `sources.debian.org/api/src/softhsm2` |
 | External Secrets Operator | operator `v2.8.0`, chart `2.8.0` | `api.github.com/repos/external-secrets/external-secrets/releases` |
 | Go | `go1.26.5` | `go.dev/dl/?mode=json` |
@@ -55,12 +55,24 @@ published March 2024, and has not moved since. The live module is
 `github.com/openbao/openbao/api/v2`. It also trails the server by a patch: there is no
 `api/v2.6.1` tag, so `api/v2 v2.6.0` is correct against server v2.6.1.
 
-**MinIO's latest release is from October 2025.** Its open-source release cadence has stalled. It
-stays pinned because Lesson 3.8 needs a free S3-compatible target and MinIO remains the best one,
-but the date is stated rather than implied.
+**Garage replaced MinIO on 2026-08-05, because MinIO is archived.** `minio/minio` is archived and
+read-only, last pushed 2026-04-24, last release October 2025. Archived means no fixes of any kind
+land, including security fixes, which rules it out as a standard component of a course about
+protecting secrets. Garage is S3-compatible, so it satisfies the OpenBao snapshot agent unchanged
+via `S3_HOST`, and at 25.8 MB it is far lighter on a laptop already running a 3-node cluster.
+
+Two things to know about the Garage pin. Its GitHub repository is a **mirror**: it publishes no
+GitHub releases, and the canonical repository is `git.deuxfleurs.fr/Deuxfleurs/garage`, so the pin
+comes from the mirror's git tags plus the Docker Hub image tag rather than from a releases API like
+every other entry here. And it is **AGPL-3.0**, which is unremarkable for running it yourself in a
+lab, but worth knowing rather than discovering.
 
 ## Re-validation
 
 OpenBao maintains only its latest release cycle; older minors stop receiving fixes, including
 security fixes. This course re-validates on every new OpenBao minor and at minimum quarterly.
 Each pass that moves the baseline cuts a new tag rather than overwriting an existing one.
+
+Every pass also checks whether each GitHub-hosted dependency is **archived or disabled**, not just
+whether it released recently. MinIO is the reason that check exists: it had been archived for
+months while still looking merely "quiet" by release date alone.

@@ -17,7 +17,7 @@ the course has somewhere to run.
 
 **Resource requirements, stated honestly.** Module 1 is light. Module 3 and the capstone
 run a 3-node Raft cluster, a second OpenBao acting as the Transit unsealer, PostgreSQL,
-MinIO, and SoftHSM2 at the same time. If you size only for Module 1 you will hit a wall
+Garage, and SoftHSM2 at the same time. If you size only for Module 1 you will hit a wall
 later, so provision for the whole course now:
 
 | Resource | Minimum | Why |
