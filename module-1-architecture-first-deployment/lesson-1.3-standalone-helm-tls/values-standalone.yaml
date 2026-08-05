@@ -1,0 +1,113 @@
+# Standalone OpenBao with TLS on the listener from the very first boot.
+#
+# Standalone, not HA, on purpose: Raft means quorum and leader election, and this
+# course does not use anything it has not explained yet. HA arrives in Module 3.
+#
+# PATHS ARE /openbao/, NOT /vault/. The chart is a descendant of vault-helm and a
+# lot of material on the internet still says /vault/data and /vault/tls, which
+# silently mounts your certificate somewhere the process never reads. Note the
+# genuinely confusing split: filesystem paths use /openbao/, while the Agent
+# injector annotations in Module 5 use the vault.hashicorp.com/ prefix, because
+# the chart ships the upstream vault-k8s injector unchanged.
+
+# THE ONE VALUE PEOPLE MISS.
+#
+# Turning on tls_cert_file in the listener below is only half the job. The chart
+# derives the scheme for the readiness probe, the liveness probe, the Agent
+# injector and the CSI provider from global.tlsDisable, and it defaults to true.
+#
+# Leave it true with a TLS listener and Kubernetes probes the https port with
+# plaintext http. They fail forever, the pod never reaches Ready, and nothing in
+# the pod's own logs explains why: the server is healthy and answering, it is the
+# probe that is speaking the wrong protocol. Symptom looks identical to "sealed",
+# which is the state you are legitimately in at that moment anyway.
+global:
+  tlsDisable: false
+
+server:
+  image:
+    repository: openbao/openbao
+    tag: "2.6.1"
+
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address         = "[::]:8200"
+        cluster_address = "[::]:8201"
+
+        # The chart's default config sets tls_disable = 1. Overriding that here is
+        # the entire point of this lesson: an unencrypted listener is not a
+        # starting point you later harden, it is a habit you later regret.
+        tls_cert_file = "/openbao/tls/tls.crt"
+        tls_key_file  = "/openbao/tls/tls.key"
+      }
+
+      storage "file" {
+        path = "/openbao/data"
+      }
+
+  # Mount the cert-manager issued certificate. The Secret is kubernetes.io/tls, so
+  # it carries tls.crt, tls.key and ca.crt.
+  volumes:
+    - name: tls
+      secret:
+        secretName: openbao-tls
+
+  volumeMounts:
+    - name: tls
+      mountPath: /openbao/tls
+      readOnly: true
+
+  # Readiness deliberately sets NO path.
+  #
+  # With path unset the chart uses its exec probe, `bao status -tls-skip-verify`,
+  # whose exit code is the seal status: 0 unsealed, 1 error, 2 sealed. That is
+  # exactly the readiness semantic you want, and being an exec it sidesteps TLS
+  # entirely.
+  #
+  # Do not "improve" this into an httpGet with a multi-parameter path such as
+  # /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204. Kubernetes escapes
+  # the ampersands when it builds the probe URL, so OpenBao receives one parameter
+  # whose value is the whole rest of the string, fails to parse it as a boolean,
+  # and answers 400. The probe then fails permanently while curl of the identical
+  # URL from your laptop returns 204, which is a genuinely miserable thing to debug.
+  # A single-parameter path is fine; two or more is not.
+  readinessProbe:
+    enabled: true
+    failureThreshold: 2
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 5
+
+  # Liveness stays off, which is the chart's default.
+  #
+  # A liveness probe answers "is this process wedged, restart it". No HTTP health
+  # check on OpenBao can answer that, because the states you care about are
+  # indistinguishable from healthy-but-sealed: sealed answers 503 and uninitialized
+  # answers 501, and both are correct, expected conditions rather than faults. Turn
+  # liveness on naively and Kubernetes restarts the pod every few seconds during the
+  # exact window where you are trying to run `bao operator init` and unseal it, and
+  # each restart re-seals the instance you just unsealed.
+  livenessProbe:
+    enabled: false
+
+  # Tell the CLI inside the container to speak https to itself, and to trust the
+  # CA that cert-manager put in the same Secret.
+  extraEnvironmentVars:
+    BAO_ADDR: https://127.0.0.1:8200
+    BAO_CACERT: /openbao/tls/ca.crt
+
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    storageClass: local-path   # k3d's built-in provisioner
+
+  service:
+    enabled: true
+
+ui:
+  enabled: true
+  serviceType: ClusterIP

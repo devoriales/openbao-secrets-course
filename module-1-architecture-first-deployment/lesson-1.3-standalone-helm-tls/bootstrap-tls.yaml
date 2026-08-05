@@ -1,0 +1,55 @@
+# Bootstrap TLS for the first OpenBao instance.
+#
+# The chicken-and-egg: OpenBao becomes the cluster's PKI certificate authority in
+# Module 4, but it cannot issue the certificate that secures its own first boot.
+# Something else has to go first. cert-manager with a self-signed issuer is that
+# something, and it is explicitly temporary scaffolding.
+#
+# A self-signed issuer means clients cannot verify the chain, which is why every
+# command in this lesson needs BAO_SKIP_VERIFY=1. That flag is a smell you should
+# never carry into production, and it disappears once OpenBao issues its own certs.
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-bootstrap
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: openbao-tls
+  namespace: openbao
+spec:
+  secretName: openbao-tls
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer
+
+  commonName: openbao.openbao.svc.cluster.local
+
+  # Every name a client might legitimately use to reach this instance. Miss one and
+  # you get a hostname verification failure that looks like a broken certificate
+  # rather than an incomplete SAN list.
+  dnsNames:
+    - openbao
+    - openbao.openbao
+    - openbao.openbao.svc
+    - openbao.openbao.svc.cluster.local
+    # The StatefulSet pod's own name, which is how a Raft peer addresses it in
+    # Module 3. Included now so the same certificate keeps working then.
+    - openbao-0.openbao-internal
+    - openbao-0.openbao-internal.openbao.svc.cluster.local
+    # kubectl port-forward presents the service as localhost on your machine.
+    - localhost
+
+  ipAddresses:
+    - 127.0.0.1
+
+  duration: 8760h    # 1 year
+  renewBefore: 720h  # 30 days
+
+  privateKey:
+    algorithm: ECDSA
+    size: 256
