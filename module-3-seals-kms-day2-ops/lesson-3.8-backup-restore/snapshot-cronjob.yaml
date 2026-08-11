@@ -1,0 +1,87 @@
+# Scheduled Raft snapshots, pushed to Garage over S3.
+#
+# OpenBao has no built in scheduled snapshots. `sys/storage/raft/snapshot-auto`
+# is a Vault Enterprise feature and returns 404 unsupported path here, so the
+# schedule is an ordinary CronJob and the retention policy is yours to write.
+#
+# The job authenticates with Kubernetes auth (lesson 2.3), not a token in a
+# Secret. Its token lives 20 minutes and carries one capability: read on
+# sys/storage/raft/snapshot. A backup job that holds a root token is a backup
+# job that can also destroy everything it is backing up.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: snapshotter
+  namespace: openbao-backup
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: openbao-snapshot
+  namespace: openbao-backup
+spec:
+  # Every 15 minutes so the lesson can watch it work. Pick a real interval from
+  # how much data you can afford to lose, not from how often it is convenient.
+  schedule: "*/15 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  # A snapshot that overlaps its predecessor doubles the load on the leader for
+  # no benefit; the second one would only be marginally fresher.
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: snapshotter
+          restartPolicy: OnFailure
+          containers:
+            - name: snapshot
+              # The real AWS CLI, same pin as lesson 3.4. Garage speaks S3, so
+              # nothing here is emulator specific except --endpoint-url.
+              image: amazon/aws-cli:2.36.16
+              envFrom:
+                - secretRef:
+                    name: garage-creds
+              env:
+                - name: BAO_ADDR
+                  # -active, not the plain service. The plain one load balances
+                  # across standbys, and a snapshot must come from the leader.
+                  value: "http://openbao-active.openbao.svc.cluster.local:8200"
+                - name: S3_ENDPOINT
+                  value: "http://garage.openbao-backup.svc.cluster.local:3900"
+                - name: BUCKET
+                  value: "openbao-snapshots"
+                - name: AWS_DEFAULT_REGION
+                  value: "garage"
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  JWT="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+
+                  # Kubernetes auth: trade the ServiceAccount token for a
+                  # short-lived OpenBao token carrying the snapshot policy.
+                  BAO_TOKEN="$(curl -sf --request POST \
+                    --data "{\"role\":\"snapshotter\",\"jwt\":\"$JWT\"}" \
+                    "$BAO_ADDR/v1/auth/kubernetes/login" \
+                    | sed -n 's/.*"client_token":"\([^"]*\)".*/\1/p')"
+                  [ -n "$BAO_TOKEN" ] || { echo "kubernetes auth failed"; exit 1; }
+
+                  STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+                  OUT="/tmp/openbao-$STAMP.snap"
+
+                  # --fail matters. Without it curl writes the error body to the
+                  # file and exits 0, and you get a bucket full of valid-looking
+                  # snapshots that are actually JSON error documents.
+                  curl -sf --header "X-Vault-Token: $BAO_TOKEN" \
+                    "$BAO_ADDR/v1/sys/storage/raft/snapshot" -o "$OUT"
+
+                  # A snapshot is a gzipped tar, so it starts 1f 8b. Checked by
+                  # magic bytes rather than `gzip -t`, because the aws-cli image
+                  # has no gzip: validation that assumes tools is validation
+                  # that silently stops running.
+                  MAGIC="$(od -An -tx1 -N2 "$OUT" | tr -d ' \n')"
+                  [ "$MAGIC" = "1f8b" ] || { echo "not a snapshot, got magic '$MAGIC'"; exit 1; }
+
+                  aws --endpoint-url "$S3_ENDPOINT" s3 cp "$OUT" "s3://$BUCKET/$(basename "$OUT")"
+                  echo "uploaded $(basename "$OUT") ($(wc -c < "$OUT") bytes)"
