@@ -1,0 +1,69 @@
+# Copies an existing `storage "file"` instance into `storage "raft"`.
+#
+# `bao operator migrate` works directly on the encrypted data. It does not need
+# a running server and it never unseals anything, which is why this is a Job
+# and not something you run against a live instance. Run it with the OpenBao
+# release UNINSTALLED, so nothing is writing to the source while it is copied.
+#
+# The PersistentVolumeClaim outlives `helm uninstall`, which is what makes this
+# possible: data-openbao-0 still holds the file-backend data after the release
+# is gone, and the new HA release reuses the same claim for node 0.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: migrate-config
+data:
+  migrate.hcl: |
+    storage_source "file" {
+      path = "/openbao/data"
+    }
+
+    # A subdirectory of the same volume, so only one PVC is involved. Raft
+    # opens <path>/vault.db and will not create a missing parent, which is why
+    # the Job mkdirs it first and why the HA values carry an init container
+    # doing the same on the other nodes.
+    storage_destination "raft" {
+      path    = "/openbao/data/raft"
+      node_id = "openbao-0"
+    }
+
+    # Required. This is the address this node will advertise to its peers.
+    cluster_addr = "http://openbao-0.openbao-internal:8201"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: storage-migrate
+spec:
+  # No retries. A half-finished migration that silently restarts is worse than
+  # one that stops and waits for a human to read the log.
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      # Must match the OpenBao pod's identity or the copied files end up owned
+      # by the wrong user and the server cannot open them.
+      securityContext:
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: migrate
+          image: quay.io/openbao/openbao:2.6.1
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              mkdir -p /openbao/data/raft
+              bao operator migrate -config=/config/migrate.hcl
+          volumeMounts:
+            - name: data
+              mountPath: /openbao/data
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: data-openbao-0
+        - name: config
+          configMap:
+            name: migrate-config

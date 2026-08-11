@@ -1,0 +1,81 @@
+# A three node OpenBao cluster on Raft integrated storage.
+#
+# This is the same chart every other lesson uses, openbao/openbao 0.28.6, with
+# the standalone mode turned off and HA turned on. No new images and no
+# plugins: Raft is built into the OpenBao binary, so `storage "raft"` needs
+# nothing that `storage "file"` did not.
+#
+# Seal is Shamir on purpose. The migration in this lesson changes exactly one
+# thing, the storage backend, and changing the seal at the same time would make
+# any failure ambiguous. The cost is that you unseal three nodes by hand after
+# every restart, which is itself the argument for the auto-unseal mechanisms in
+# lessons 3.2 to 3.4.
+server:
+  # Raft opens its bolt file at <path>/vault.db and will NOT create a missing
+  # parent directory. Node 0 has /openbao/data/raft because the migration job
+  # created it; nodes 1 and 2 get empty volumes and crashloop with
+  #   failed to open bolt file: open /openbao/data/raft/vault.db:
+  #   no such file or directory
+  # unless something makes the directory first. One mkdir, once, per node.
+  extraInitContainers:
+    - name: mkdir-raft
+      image: quay.io/openbao/openbao:2.6.1
+      command: ["/bin/sh", "-ec", "mkdir -p /openbao/data/raft"]
+      volumeMounts:
+        - name: data
+          mountPath: /openbao/data
+
+  ha:
+    enabled: true
+    replicas: 3
+
+    raft:
+      enabled: true
+      # Names each Raft node after its pod: openbao-0, openbao-1, openbao-2.
+      # Without this the node ids are random UUIDs, which turns `list-peers`
+      # and `remove-peer` into a guessing game at exactly the wrong moment.
+      setNodeId: true
+
+      config: |
+        ui = true
+
+        listener "tcp" {
+          tls_disable     = 1
+          address         = "[::]:8200"
+          # Port 8201 is the cluster port. Raft peers talk to each other here,
+          # not on 8200. Blocking it between pods gives you three instances
+          # that are individually healthy and never form a cluster.
+          cluster_address = "[::]:8201"
+        }
+
+        storage "raft" {
+          # A subdirectory, not /openbao/data itself. On a cluster migrated
+          # from `storage "file"` the old file-backend data is still sitting in
+          # /openbao/data, and Raft wants a directory of its own. Using the
+          # same path for a fresh install and a migrated one means the values
+          # file does not change between the two.
+          path = "/openbao/data/raft"
+
+          # retry_join lets every node find the cluster on its own, including
+          # after a reschedule, instead of being joined by hand once. The
+          # addresses are the per-pod DNS names from the headless service.
+          retry_join { leader_api_addr = "http://openbao-0.openbao-internal:8200" }
+          retry_join { leader_api_addr = "http://openbao-1.openbao-internal:8200" }
+          retry_join { leader_api_addr = "http://openbao-2.openbao-internal:8200" }
+        }
+
+        service_registration "kubernetes" {}
+
+  # Each pod gets its own PersistentVolumeClaim. With Raft the data is
+  # replicated between them rather than shared, so this is three copies of the
+  # same log, not one volume with three writers.
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    mountPath: /openbao/data
+
+  livenessProbe:
+    enabled: false
+
+injector:
+  enabled: false
