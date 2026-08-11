@@ -13,18 +13,58 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 jq_() { python3 -c "import sys,json;print(json.load(sys.stdin)$1)"; }
 
+# Opens a port-forward and does not return until it actually carries traffic.
+#
+# Note what this does NOT do: wait for the pod to be Ready. The chart's readiness
+# probe is `bao status`, which exits non-zero while an instance is sealed or
+# uninitialized. A fresh OpenBao is therefore never Ready until after the init and
+# unseal steps below, which means `helm install --wait` cannot be used to gate
+# these installs at all. It either burns its whole timeout or, on some Helm
+# versions, returns before the pod exists and the port-forward dies with
+# "unable to forward port because pod is not running".
+#
+# So: wait for Running, then poll the tunnel until it answers.
+#
+# $2 is the chart's fullname, which is NOT always "<release>-openbao". Helm's
+# fullname template drops the prefix when the release name already contains the
+# chart name, so release "unsealer" gives unsealer-openbao while release
+# "openbao" gives plain openbao. Confirm yours with `kubectl get svc` rather than
+# assuming either form.
+open_tunnel() {
+  local ns="$1" name="$2" lport="$3" logf="$4" phase=""
+
+  # Polled rather than `kubectl wait`, because wait errors out with "pods
+  # <name> not found" if it beats the StatefulSet controller to creating the
+  # pod, which on a fresh namespace it usually does.
+  for _ in $(seq 60); do
+    phase="$(kubectl -n "$ns" get "pod/${name}-0" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+    [ "$phase" = "Running" ] && break
+    sleep 3
+  done
+  [ "$phase" = "Running" ] || { echo "pod ${name}-0 never reached Running (phase: ${phase:-absent})" >&2; return 1; }
+
+  kubectl -n "$ns" port-forward "svc/${name}" "${lport}:8200" >"$logf" 2>&1 &
+  for _ in $(seq 30); do
+    if curl -s --max-time 2 -o /dev/null "http://127.0.0.1:${lport}/v1/sys/seal-status"; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "port-forward to ${name} never came up, see $logf" >&2
+  return 1
+}
+
 echo "==> 1. The unsealer: a plain Shamir instance holding one Transit key"
 helm repo add openbao https://openbao.github.io/openbao-helm >/dev/null 2>&1 || true
 helm repo update >/dev/null 2>&1 || true
 kubectl create namespace openbao-unsealer >/dev/null 2>&1 || true
 helm install unsealer openbao/openbao -n openbao-unsealer --version 0.28.6 \
-  --values "$HERE/values-unsealer.yaml" --wait --timeout 5m >/dev/null
+  --values "$HERE/values-unsealer.yaml" >/dev/null
 
-# NOTE the service name: the chart names it <release>-openbao, so it is
-# unsealer-openbao, not unsealer. Getting this wrong makes the port-forward exit
-# silently and every later command fail with connection refused.
-kubectl -n openbao-unsealer port-forward svc/unsealer-openbao 8300:8200 >/tmp/pf-unsealer.log 2>&1 &
-sleep 7
+# The service here is unsealer-openbao, not unsealer. Port-forwarding to the
+# release name alone exits silently and every later command fails with
+# connection refused.
+open_tunnel openbao-unsealer unsealer-openbao 8300 /tmp/pf-unsealer.log
 
 export BAO_ADDR='http://127.0.0.1:8300'
 bao operator init -key-shares=1 -key-threshold=1 -format=json > /tmp/unsealer-init.json
@@ -54,10 +94,9 @@ kubectl create namespace openbao >/dev/null 2>&1 || true
 kubectl -n openbao delete secret unsealer-token >/dev/null 2>&1 || true
 kubectl -n openbao create secret generic unsealer-token --from-literal=token="$UT" >/dev/null
 helm install openbao openbao/openbao -n openbao --version 0.28.6 \
-  --values "$HERE/values-autounseal.yaml" --wait --timeout 5m >/dev/null
+  --values "$HERE/values-autounseal.yaml" >/dev/null
 
-kubectl -n openbao port-forward svc/openbao 8200:8200 >/tmp/pf-main.log 2>&1 &
-sleep 8
+open_tunnel openbao openbao 8200 /tmp/pf-main.log
 
 export BAO_ADDR='http://127.0.0.1:8200'
 echo
