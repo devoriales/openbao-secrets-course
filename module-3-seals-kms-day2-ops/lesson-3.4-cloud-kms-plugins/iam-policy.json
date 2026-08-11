@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "Minimal IAM policy for an OpenBao instance using seal \"awskms\".",
+    "Three actions, no more. Encrypt and Decrypt wrap and unwrap the root key.",
+    "DescribeKey is called at startup, before any encryption happens, to fetch",
+    "the key's metadata: with it missing you get 'error fetching AWS KMS",
+    "wrapping key information' and the process exits while configuring the seal.",
+    "",
+    "Deliberately absent: kms:CreateKey, kms:ScheduleKeyDeletion, kms:PutKeyPolicy",
+    "and anything with a wildcard action. OpenBao does not create the key and must",
+    "not be able to destroy the one thing that can open its own barrier.",
+    "",
+    "Replace REGION, ACCOUNT_ID and KEY_ID. Scope Resource to the single key ARN,",
+    "never \"*\": a wildcard here grants the instance use of every KMS key in the",
+    "account.",
+    "",
+    "This file cannot be validated in the MiniStack lab, because the emulator does",
+    "not enforce IAM at all. It is correct per the OpenBao documentation and is the",
+    "part of this lesson you must verify against real AWS yourself."
+  ],
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OpenBaoAutoUnseal",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:DescribeKey"
+      ],
+      "Resource": "arn:aws:kms:REGION:ACCOUNT_ID:key/KEY_ID"
+    }
+  ]
+}

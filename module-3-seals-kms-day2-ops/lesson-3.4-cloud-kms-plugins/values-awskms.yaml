@@ -1,0 +1,76 @@
+server:
+  # Built by this directory's Dockerfile: the stock openbao/openbao:2.6.1
+  # Alpine image plus the openbao-plugin-kms-aws binary. registry must be
+  # emptied because the chart otherwise prepends quay.io to a locally imported
+  # image, the same trap as lesson 3.3.
+  image:
+    registry: ""
+    repository: openbao-awskms
+    tag: "lab"
+    pullPolicy: IfNotPresent
+
+  # Credentials arrive from a Secret, never the config, because the config is a
+  # ConfigMap that anyone with `get configmap` can read. Against MiniStack
+  # these are meaningless strings, but the wiring is the part you keep when you
+  # point this at real AWS. On EKS you would delete these two entirely and let
+  # IRSA supply short-lived credentials instead. See the README.
+  extraSecretEnvironmentVars:
+    - envName: AWS_ACCESS_KEY_ID
+      secretName: awskms-creds
+      secretKey: access_key
+    - envName: AWS_SECRET_ACCESS_KEY
+      secretName: awskms-creds
+      secretKey: secret_key
+
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    mountPath: /openbao/data
+
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address     = "[::]:8200"
+        tls_disable = 1
+      }
+
+      storage "file" {
+        path = "/openbao/data"
+      }
+
+      plugin_directory = "/openbao/plugins"
+
+      # Registers openbao-plugin-kms-aws under the name "awskms", which is the
+      # same name the built-in mechanism used, so the seal stanza below is
+      # unchanged from the built-in form. sha256sum is the hash of the plugin
+      # BINARY, taken from checksums-kms-aws.txt in the release, and the
+      # setup script reads it back out of the built image so the two cannot
+      # drift apart.
+      plugin "kms" "awskms" {
+        command   = "PLUGIN_BINARY"
+        sha256sum = "PLUGIN_SHA256"
+      }
+
+      seal "awskms" {
+        region     = "us-east-1"
+
+        # An alias, not a raw key id. Aliases survive key rotation: you
+        # repoint the alias and OpenBao follows it without a config change.
+        kms_key_id = "alias/openbao-unseal"
+
+        # The only line that is lab-specific. Delete `endpoint` and this same
+        # stanza talks to real AWS KMS. It exists so the AWS SDK can be pointed
+        # at MiniStack instead of amazonaws.com.
+        endpoint   = "http://ministack.openbao-kms.svc.cluster.local:4566"
+      }
+
+  # Off for the same reason as every other lesson: no HTTP check distinguishes
+  # a wedged process from a healthy sealed one.
+  livenessProbe:
+    enabled: false
+
+injector:
+  enabled: false

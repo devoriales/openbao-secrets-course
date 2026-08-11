@@ -1,0 +1,98 @@
+# MiniStack: a local AWS API emulator, standing in for AWS KMS.
+#
+# What this is
+#   github.com/ministackorg/ministack, MIT licensed, image
+#   nahuelnucera/ministack pinned to 1.4.11. It serves AWS service APIs on a
+#   single port, 4566, and speaks enough of the KMS API for a real AWS SDK to
+#   talk to it unmodified. That is the only reason it works here: OpenBao's
+#   seal uses the ordinary AWS SDK for Go, so anything that answers the KMS
+#   wire protocol will do.
+#
+# Why not LocalStack
+#   LocalStack's current images require a paid auth token and exit without one.
+#   Only pinned older tags still run unlicensed, which is not something to
+#   build a course lab on.
+#
+# What it CANNOT do, which matters more than what it can
+#   It does not enforce IAM. Any access key at all is accepted, including
+#   obvious nonsense. So this lab can prove the seal mechanism end to end and
+#   cannot prove your IAM policy. The lesson demonstrates that limit rather
+#   than papering over it, because IAM is the thing that actually breaks cloud
+#   KMS auto-unseal in production.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ministack-state
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ministack
+  labels: { app: ministack }
+spec:
+  replicas: 1
+  strategy:
+    # Recreate, not RollingUpdate: the state PVC is ReadWriteOnce, so a second
+    # pod cannot mount it while the first still holds it.
+    type: Recreate
+  selector:
+    matchLabels: { app: ministack }
+  template:
+    metadata:
+      labels: { app: ministack }
+    spec:
+      containers:
+        - name: ministack
+          image: nahuelnucera/ministack:1.4.11
+          ports:
+            - containerPort: 4566
+              name: aws-api
+          env:
+            # Emulator only. These are not credentials, they are the strings
+            # the SDK insists on having before it will send a request.
+            - name: AWS_DEFAULT_REGION
+              value: us-east-1
+            # Without these two, MiniStack keeps everything in memory and
+            # forgets your KMS key the moment the pod restarts. That is not a
+            # cosmetic problem: OpenBao's root key is wrapped by that key, so
+            # losing it makes the barrier permanently unopenable and the whole
+            # lab has to be rebuilt from scratch.
+            #
+            # It also breaks the lesson's failure drill. Without persistence,
+            # "the KMS endpoint is briefly unreachable" and "somebody deleted
+            # the KMS key" become the same event, and they are emphatically
+            # not the same event in production.
+            - name: PERSIST_STATE
+              value: "1"
+            - name: STATE_DIR
+              value: /var/lib/ministack/state
+          volumeMounts:
+            - name: state
+              mountPath: /var/lib/ministack
+          readinessProbe:
+            httpGet: { path: /, port: 4566 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: ministack-state
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ministack
+spec:
+  selector: { app: ministack }
+  ports:
+    - port: 4566
+      targetPort: 4566
+      name: aws-api
