@@ -1,0 +1,85 @@
+server:
+  # The locally built image from this directory, imported into k3d. It carries
+  # the bao binary, the SoftHSM library and the KMS plugin, because PKCS#11 is
+  # an in-process library call and all three have to be in the same container.
+  # registry must be emptied. It defaults to quay.io, and the chart prepends it
+  # unconditionally, so a locally imported image becomes quay.io/openbao-pkcs11
+  # and the pod sits in ErrImagePull looking for something that was never
+  # pushed anywhere.
+  image:
+    registry: ""
+    repository: openbao-pkcs11
+    tag: "lab"
+    pullPolicy: IfNotPresent
+
+  # The PIN is a credential and does not belong in the config, which is a
+  # ConfigMap that anyone with `get configmap` can read. The seal reads
+  # BAO_HSM_PIN from the environment instead, and the Secret is created by
+  # setup-pkcs11-unseal.sh.
+  extraSecretEnvironmentVars:
+    - envName: BAO_HSM_PIN
+      secretName: softhsm-pin
+      secretKey: pin
+
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    mountPath: /openbao/data
+
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address     = "[::]:8200"
+        tls_disable = 1
+      }
+
+      storage "file" {
+        path = "/openbao/data"
+      }
+
+      # Where OpenBao looks for external plugin binaries. The plugin was placed
+      # here by the Dockerfile.
+      plugin_directory = "/openbao/plugins"
+
+      # Registers the external KMS plugin under the name "pkcs11". The name is
+      # arbitrary, but it is what the seal stanza below refers to, and calling
+      # it "pkcs11" makes the seal stanza identical to the built-in one that
+      # this replaces. That is what "drop-in compatible" means in the 2.6.0
+      # release notes.
+      #
+      # sha256sum is the hash of the plugin binary, not of the release tarball.
+      # OpenBao refuses to execute a plugin whose hash does not match, so an
+      # image rebuild that quietly pulls a different plugin build fails closed
+      # at startup rather than running something you did not vet.
+      plugin "kms" "pkcs11" {
+        command   = "PLUGIN_BINARY"
+        sha256sum = "PLUGIN_SHA256"
+      }
+
+      # No pin here on purpose: it arrives as BAO_HSM_PIN.
+      #
+      # mechanism is one of only two OpenBao accepts, CKM_AES_GCM and
+      # CKM_RSA_PKCS_OAEP, because it will not use anything that is not AEAD.
+      seal "pkcs11" {
+        lib         = "/usr/lib/softhsm/libsofthsm2.so"
+        token_label = "openbao"
+        key_label   = "bao-unseal"
+        mechanism   = "CKM_AES_GCM"
+      }
+
+  # Liveness stays off for the same reason as every other lesson in this
+  # course: no HTTP check tells wedged apart from healthy-but-sealed.
+  #
+  # Readiness is the chart default, `bao status`, which exits non-zero while
+  # the instance is uninitialised. That matters here more than usual: the pod
+  # sits Running and not Ready for the whole key-generation step, so the
+  # Service has no endpoints and you must port-forward to the pod by name
+  # rather than to the service.
+  livenessProbe:
+    enabled: false
+
+injector:
+  enabled: false
