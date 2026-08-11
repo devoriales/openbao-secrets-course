@@ -1,0 +1,81 @@
+# Step 3 of 3: Transit to PKCS#11, an auto to auto migration.
+#
+# Two changes from step 2:
+#   1. the incoming seal "pkcs11" stanza, plus the plugin registration it needs
+#   2. disabled = "true" on the OUTGOING seal "transit" stanza
+#
+# Both matter. The outgoing stanza has to stay in the file: it is what still
+# holds the ability to decrypt the current root key, and deleting it instead of
+# disabling it leaves nothing that can open the barrier. The disabled flag is
+# what tells OpenBao which of the two is on the way out.
+#
+# Omit the flag and the config does not load at all:
+#   error loading configuration: seals: two seals provided but neither is disabled
+#
+# The plugin registration is the same one lesson 3.3 explained.
+# openbao-plugin-kms-aws is NOT here; only kms-pkcs11 is, because this chain
+# never touches AWS.
+server:
+  image:
+    registry: ""
+    repository: openbao-pkcs11
+    tag: "lab"
+    pullPolicy: IfNotPresent
+
+  extraSecretEnvironmentVars:
+    - envName: BAO_HSM_PIN
+      secretName: softhsm-pin
+      secretKey: pin
+    - envName: BAO_TOKEN
+      secretName: unsealer-token
+      secretKey: token
+
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    mountPath: /openbao/data
+
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address     = "[::]:8200"
+        tls_disable = 1
+      }
+
+      storage "file" {
+        path = "/openbao/data"
+      }
+
+      plugin_directory = "/openbao/plugins"
+
+      plugin "kms" "pkcs11" {
+        command   = "PLUGIN_BINARY"
+        sha256sum = "PLUGIN_SHA256"
+      }
+
+      # OUTGOING. Kept, and disabled. Still able to decrypt the existing root
+      # key, which is the only reason the migration can happen at all.
+      seal "transit" {
+        address    = "http://unsealer-openbao.openbao-unsealer.svc.cluster.local:8200"
+        key_name   = "autounseal"
+        mount_path = "transit/"
+        disabled   = "true"
+      }
+
+      # INCOMING. The token and key were provisioned by the image entrypoint
+      # and by the setup script respectively, before this point.
+      seal "pkcs11" {
+        lib         = "/usr/lib/softhsm/libsofthsm2.so"
+        token_label = "openbao"
+        key_label   = "bao-unseal"
+        mechanism   = "CKM_AES_GCM"
+      }
+
+  livenessProbe:
+    enabled: false
+
+injector:
+  enabled: false

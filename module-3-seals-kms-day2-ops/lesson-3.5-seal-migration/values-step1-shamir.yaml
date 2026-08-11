@@ -1,0 +1,50 @@
+# Step 1 of 3: the starting point. Plain Shamir, no seal stanza at all.
+#
+# The image is openbao-pkcs11:lab, built by lesson 3.3, even though nothing
+# here needs PKCS#11 yet. It carries the bao binary, libsofthsm2.so and the
+# openbao-plugin-kms-pkcs11 binary, and step 3 needs all three. Migrating is
+# not the moment to discover your target image is missing a library, so the
+# whole chain runs on one image from the start.
+#
+#   cd ../lesson-3.3-pkcs11-softhsm2 && docker build -t openbao-pkcs11:lab .
+#   k3d image import openbao-pkcs11:lab -c openbao-dev
+server:
+  image:
+    registry: ""
+    repository: openbao-pkcs11
+    tag: "lab"
+    pullPolicy: IfNotPresent
+
+  # BAO_HSM_PIN is required by the image's entrypoint, which provisions the
+  # SoftHSM token at container start. The token sits unused until step 3.
+  extraSecretEnvironmentVars:
+    - envName: BAO_HSM_PIN
+      secretName: softhsm-pin
+      secretKey: pin
+
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    mountPath: /openbao/data
+
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address     = "[::]:8200"
+        tls_disable = 1
+      }
+
+      storage "file" {
+        path = "/openbao/data"
+      }
+
+      # No seal stanza. Absence of one IS the Shamir seal.
+
+  livenessProbe:
+    enabled: false
+
+injector:
+  enabled: false

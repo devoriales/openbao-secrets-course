@@ -1,0 +1,60 @@
+# Step 2 of 3: Shamir to Transit.
+#
+# Diff against step 1 is exactly one added stanza. Nothing is marked disabled,
+# because there is no outgoing seal stanza to disable: Shamir is the absence of
+# one, so OpenBao infers the migration from Shamir by seeing a seal appear.
+#
+# After restarting on this config the instance does NOT unseal itself. It logs
+#   entering seal migration mode; Vault will not automatically unseal
+# and waits for `bao operator unseal -migrate` with a quorum of the SHAMIR
+# keys. Those keys then become the recovery keys of the new seal.
+server:
+  image:
+    registry: ""
+    repository: openbao-pkcs11
+    tag: "lab"
+    pullPolicy: IfNotPresent
+
+  extraSecretEnvironmentVars:
+    - envName: BAO_HSM_PIN
+      secretName: softhsm-pin
+      secretKey: pin
+    # The Transit unsealer's token. Same arrangement as lesson 3.2: the token
+    # is a credential, so it comes from a Secret rather than the ConfigMap that
+    # holds the config.
+    - envName: BAO_TOKEN
+      secretName: unsealer-token
+      secretKey: token
+
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    mountPath: /openbao/data
+
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address     = "[::]:8200"
+        tls_disable = 1
+      }
+
+      storage "file" {
+        path = "/openbao/data"
+      }
+
+      # ADDED in step 2. The unsealer is the one from lesson 3.2, running in
+      # the openbao-unsealer namespace.
+      seal "transit" {
+        address    = "http://unsealer-openbao.openbao-unsealer.svc.cluster.local:8200"
+        key_name   = "autounseal"
+        mount_path = "transit/"
+      }
+
+  livenessProbe:
+    enabled: false
+
+injector:
+  enabled: false
