@@ -1,0 +1,58 @@
+# What cert-manager needs in order to authenticate to OpenBao as itself.
+#
+# cert-manager does not present its own ServiceAccount token to OpenBao. It mints
+# a short lived token for a ServiceAccount you nominate, and presents that. Two
+# consequences follow, and the second one is the one that stops people.
+#
+# 1. The nominated ServiceAccount lives in the ISSUER's namespace, not in
+#    cert-manager's. A namespaced Issuer in `openbao` looks for the account in
+#    `openbao`. (A ClusterIssuer instead looks in cert-manager's own namespace,
+#    which is where the confusion comes from.)
+#
+# 2. cert-manager's controller needs Kubernetes permission to mint that token.
+#    Without the Role below, the Issuer never initialises and reports:
+#
+#      Error initializing issuer: while requesting a token for the service
+#      account openbao/cert-manager-pki: serviceaccounts "cert-manager-pki" is
+#      forbidden: User "system:serviceaccount:cert-manager:cert-manager" cannot
+#      create resource "serviceaccounts/token" in API group "" in the namespace
+#      "openbao"
+#
+#    which names the missing verb precisely, and is still easy to misread as an
+#    OpenBao policy problem because everything else in the sentence is about
+#    OpenBao.
+#
+# resourceNames pins the grant to this one account. Without it you would be
+# granting the ability to impersonate every ServiceAccount in the namespace,
+# which is a much larger permission than this task needs.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cert-manager-pki
+  namespace: openbao
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cert-manager-token-creator
+  namespace: openbao
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: ["cert-manager-pki"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cert-manager-token-creator
+  namespace: openbao
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cert-manager-token-creator
+subjects:
+  - kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager

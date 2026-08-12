@@ -1,0 +1,52 @@
+# The certificate that closes the loop opened in lesson 1.3.
+#
+# secretName is openbao-tls, the SAME Secret the bootstrap self signed certificate
+# used. That is intentional: the OpenBao pod already mounts it, so no Helm value
+# and no pod spec has to change. What changes is who signed the contents.
+#
+# Delete the lesson 1.3 Certificate named `openbao-tls` BEFORE applying this, or
+# two Certificate resources own one Secret and fight over it. Deleting the
+# Certificate resource does not delete the Secret, verified, so the running
+# listener keeps serving throughout the swap.
+#
+# duration 168h against a role whose max_ttl is 720h. Requesting more than the
+# role allows would not fail; it would be silently truncated to 720h while
+# cert-manager went on believing it held what it asked for. Keep duration at or
+# under the role ceiling and let renewBefore do the work.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: openbao-tls-from-pki
+  namespace: openbao
+spec:
+  secretName: openbao-tls
+
+  issuerRef:
+    name: openbao-pki
+    kind: Issuer
+
+  commonName: openbao.openbao.svc.cluster.local
+
+  # Same set as the bootstrap certificate in lesson 1.3. A missing name here
+  # produces a hostname verification failure that reads like a broken CA.
+  dnsNames:
+    - openbao
+    - openbao.openbao
+    - openbao.openbao.svc
+    - openbao.openbao.svc.cluster.local
+    - localhost
+
+  ipAddresses:
+    - 127.0.0.1
+
+  # Seven days, renewed with a day to spare. This is the operational shift the
+  # lesson is about: at 168h nobody can renew this by hand on a calendar, so the
+  # automation is not a convenience, it is the only way it works at all.
+  duration: 168h
+  renewBefore: 24h
+
+  # The root and intermediate are RSA. Matching here keeps one algorithm across
+  # the chain; lesson 1.3's bootstrap key was ECDSA P-256.
+  privateKey:
+    algorithm: RSA
+    size: 2048
