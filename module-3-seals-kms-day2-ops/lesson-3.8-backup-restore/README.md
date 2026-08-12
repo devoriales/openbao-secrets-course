@@ -26,8 +26,11 @@ from [lesson 3.7](../lesson-3.7-raft-ha).
 ## What it uses
 
 **Garage v2.3.0**, image `dxflrs/garage:v2.3.0`, from
-[Deuxfleurs](https://git.deuxfleurs.fr/Deuxfleurs/garage), MIT licensed. It is the S3
-target. **Not MinIO:** `minio/minio` has been archived since 2026 and receives no further
+[Deuxfleurs](https://git.deuxfleurs.fr/Deuxfleurs/garage), **AGPL-3.0**. It is the S3
+target. The licence is worth knowing rather than discovering: running it yourself as a backup
+target, which is what this lesson does, is unremarkable, but the network copyleft clause
+applies to anyone offering a modified Garage as a service. **Not MinIO:** `minio/minio` has
+been archived since 2026 and receives no further
 security fixes, which disqualifies it from a course about protecting secrets. Garage is
 25.8 MB, which matters on a laptop already running three OpenBao nodes.
 

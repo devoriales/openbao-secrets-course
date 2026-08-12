@@ -65,8 +65,14 @@ published March 2024, and has not moved since. The live module is
 **Garage replaced MinIO on 2026-08-05, because MinIO is archived.** `minio/minio` is archived and
 read-only, last pushed 2026-04-24, last release October 2025. Archived means no fixes of any kind
 land, including security fixes, which rules it out as a standard component of a course about
-protecting secrets. Garage is S3-compatible, so it satisfies the OpenBao snapshot agent unchanged
-via `S3_HOST`, and at 25.8 MB it is far lighter on a laptop already running a 3-node cluster.
+protecting secrets. Garage is S3-compatible, so the `aws` CLI and lesson 3.8's snapshot CronJob
+talk to it unmodified, and at 25.8 MB it is far lighter on a laptop already running a 3-node
+cluster.
+
+There is no "OpenBao snapshot agent" and no `S3_HOST`, which an earlier revision of this file
+claimed. Automated snapshots to object storage are a Vault Enterprise feature;
+`sys/storage/raft/snapshot-auto/config` returns **404 unsupported path** on OpenBao 2.6.1, so
+the schedule and the upload are written by hand. See lesson 3.8.
 
 Two things to know about the Garage pin. Its GitHub repository is a **mirror**: it publishes no
 GitHub releases, and the canonical repository is `git.deuxfleurs.fr/Deuxfleurs/garage`, so the pin

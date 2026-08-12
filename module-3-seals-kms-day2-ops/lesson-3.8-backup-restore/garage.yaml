@@ -2,8 +2,8 @@
 #
 # Garage, not MinIO: minio/minio has been archived since 2026 and takes no
 # further security fixes, which disqualifies it from a course about protecting
-# secrets. Garage is S3 compatible, MIT licensed, and the image is 25.8 MB,
-# which matters on a laptop already running a three node OpenBao cluster.
+# secrets. Garage is S3 compatible, AGPL-3.0, and the image is 25.8 MB, which
+# matters on a laptop already running a three node OpenBao cluster.
 #
 # Upstream lives at git.deuxfleurs.fr/Deuxfleurs/garage. The GitHub repository
 # is a mirror and publishes no releases, so the version is pinned from the tag
