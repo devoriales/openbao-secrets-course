@@ -1,0 +1,138 @@
+# PostgreSQL 18.4 as the target database for OpenBao's database secrets engine.
+#
+# This is a plain StatefulSet on the official postgres:18.4-trixie image, which is
+# what VERSIONS.md pins. It is deliberately not a third-party Helm chart: the only
+# thing this lesson needs from PostgreSQL is a reachable server with one privileged
+# account, and every chart in front of that is a dependency the course would have to
+# keep alive for no teaching benefit.
+#
+# One account matters here: openbao_admin. It is the credential OpenBao logs in with
+# to create and drop the short-lived roles it hands to applications. OpenBao never
+# gives this one out. By the end of the lesson nobody knows its password, including
+# you, because rotate-root will have replaced it.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databases
+---
+# The initial password is in this manifest, in version control, in plain text.
+#
+# That is not an oversight and it is not a shortcut. It is the starting condition
+# this lesson exists to destroy: a static credential, committed, readable by anyone
+# with repository access, valid until a human remembers to change it. Step 6 of the
+# lesson rotates it out of existence. Until then, treat it as compromised, because
+# it is.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-bootstrap
+  namespace: databases
+type: Opaque
+stringData:
+  POSTGRES_USER: openbao_admin
+  POSTGRES_DB: appdb
+  POSTGRES_PASSWORD: initial_password_will_be_rotated
+---
+# Seed schema. The dynamic roles OpenBao creates need something to actually select
+# from, otherwise "the credential works" is an untested claim.
+#
+# Note the ALTER DEFAULT PRIVILEGES line. GRANT SELECT ON ALL TABLES IN SCHEMA public
+# grants on the tables that exist at the moment the GRANT runs, and on nothing
+# created afterwards. Since OpenBao runs its creation_statements when a credential is
+# requested, a table added after that request is invisible to that credential and
+# visible to the next one. The result is a permission bug that depends on when a
+# lease was issued, which is a genuinely unpleasant thing to chase. Setting default
+# privileges for openbao_admin closes it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-seed
+  namespace: databases
+data:
+  01-schema.sql: |
+    CREATE TABLE payments (
+        id              bigserial PRIMARY KEY,
+        account_ref     text        NOT NULL,
+        amount_cents    bigint      NOT NULL,
+        currency        char(3)     NOT NULL,
+        captured_at     timestamptz NOT NULL DEFAULT now()
+    );
+
+    INSERT INTO payments (account_ref, amount_cents, currency) VALUES
+        ('acct_4Kd91mQr', 249900, 'SEK'),
+        ('acct_7Xb22nLp',  87500, 'SEK'),
+        ('acct_9Zc03vTn', 1499000, 'EUR');
+
+    ALTER DEFAULT PRIVILEGES FOR ROLE openbao_admin IN SCHEMA public
+        GRANT SELECT ON TABLES TO PUBLIC;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: databases
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: databases
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18.4-trixie
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres-bootstrap
+          env:
+            # postgres:18 puts the data directory at the volume root by default,
+            # and mounting a PVC there leaves lost+found behind on some storage
+            # classes, which initdb refuses to start into. A subdirectory avoids it.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: seed
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "openbao_admin", "-d", "appdb"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: seed
+          configMap:
+            name: postgres-seed
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 1Gi
