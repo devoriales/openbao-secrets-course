@@ -1,0 +1,98 @@
+# A workload that gets its secret without knowing OpenBao exists.
+#
+#   kubectl apply -f reporting-app.yaml
+#   kubectl -n apps get pod -l app=reporting -o jsonpath='{.items[0].spec.containers[*].name}'
+#   kubectl -n apps exec deploy/reporting -c reporting -- cat /vault/secrets/db-config
+#
+# EVERY ANNOTATION BELOW IS vault.hashicorp.com/, NOT bao.hashicorp.com/.
+#
+# The OpenBao chart ships the upstream vault-k8s injector unchanged, so the
+# prefix it watches for is still the Vault one. Rename it and nothing happens at
+# all: no injection, no warning, no event. The pod starts, your application
+# looks for a file that was never created, and the only clue is that the pod has
+# one container where it should have two. This is the most common failure in
+# this lesson and it does not announce itself.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporting
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporting
+  template:
+    metadata:
+      labels:
+        app: reporting
+      annotations:
+        # Turn injection on for this pod.
+        vault.hashicorp.com/agent-inject: "true"
+
+        # The Kubernetes auth role from configure-injection.sh. The agent
+        # presents this pod's ServiceAccount token and gets a token carrying
+        # the reporting-read policy.
+        vault.hashicorp.com/role: "reporting"
+
+        # TLS. The listener serves a certificate from OpenBao's own PKI, so the
+        # agent needs the root. tls-secret names a Secret to mount, ca-cert is
+        # the path the agent then reads inside its own container.
+        vault.hashicorp.com/tls-secret: "openbao-ca"
+        vault.hashicorp.com/ca-cert: "/vault/tls/ca.crt"
+
+        # What to fetch and where to put it. The suffix after the last dash is
+        # the filename: this renders /vault/secrets/db-config.
+        vault.hashicorp.com/agent-inject-secret-db-config: "secret/data/apps/reporting"
+
+        # And how to shape it. Without a template you get OpenBao's own map
+        # dump, which is readable but not something an application can parse
+        # without knowing the API. With one, you write the file your application
+        # already expects, which is the entire reason this mechanism needs no
+        # application change.
+        vault.hashicorp.com/agent-inject-template-db-config: |
+          {{- with secret "secret/data/apps/reporting" -}}
+          DB_URL={{ .Data.data.db_url }}
+          API_KEY={{ .Data.data.api_key }}
+          {{- end }}
+
+        # The sidecar is a real container on a small node. Give it limits, and
+        # give it requests in the same breath.
+        #
+        # The injector's own defaults are 250m CPU requested and 500m limit. Set
+        # only the limit, to 100m, and the injected container asks for 250m
+        # against a 100m ceiling. The API server rejects the pod:
+        #
+        #   spec.containers[1].resources.requests: Invalid value: "250m":
+        #   must be less than or equal to cpu limit of 100m
+        #
+        # The Deployment then sits at 0/1 with no pod and no event of its own,
+        # because the rejection happened to the ReplicaSet. Always set the pair.
+        vault.hashicorp.com/agent-requests-cpu: "50m"
+        vault.hashicorp.com/agent-requests-mem: "64Mi"
+        vault.hashicorp.com/agent-limits-cpu: "100m"
+        vault.hashicorp.com/agent-limits-mem: "128Mi"
+    spec:
+      serviceAccountName: reporting
+      containers:
+        - name: reporting
+          image: busybox:1.37
+          # Stand-in for an application: read the file every 30 seconds and say
+          # what it found. A real one would read it at startup and, if it cares
+          # about rotation, watch the file for changes.
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while true; do
+                if [ -f /vault/secrets/db-config ]; then
+                  echo "$(date -Iseconds) config present: $(head -c 60 /vault/secrets/db-config | tr '\n' ' ')"
+                else
+                  echo "$(date -Iseconds) no config file, the injector did not run"
+                fi
+                sleep 30
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
