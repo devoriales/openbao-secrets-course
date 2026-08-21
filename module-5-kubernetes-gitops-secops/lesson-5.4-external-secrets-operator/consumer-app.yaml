@@ -1,0 +1,52 @@
+# The half of ESO that makes it popular: the application consumes an ordinary
+# Kubernetes Secret and needs to know nothing about anything.
+#
+# It also demonstrates the half people forget. envFrom is evaluated once, when
+# the container starts. ESO can rewrite the Secret every minute and this process
+# will hold its original values until something restarts it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporting-consumer
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporting-consumer
+  template:
+    metadata:
+      labels:
+        app: reporting-consumer
+    spec:
+      containers:
+        - name: app
+          image: busybox:1.37
+          # Print the environment copy and the mounted copy side by side, so the
+          # difference between them after a rotation is visible in one log line.
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while true; do
+                echo "$(date -Iseconds) env=${API_KEY} file=$(cat /etc/reporting/API_KEY 2>/dev/null)"
+                sleep 15
+              done
+          envFrom:
+            - secretRef:
+                name: reporting-config
+          volumeMounts:
+            - name: config
+              mountPath: /etc/reporting
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+      volumes:
+        # A projected Secret volume is updated in place by the kubelet, on its
+        # own sync period, so the file follows the Secret while the environment
+        # variable does not. If you must consume a Secret that rotates, mount it.
+        - name: config
+          secret:
+            secretName: reporting-config
