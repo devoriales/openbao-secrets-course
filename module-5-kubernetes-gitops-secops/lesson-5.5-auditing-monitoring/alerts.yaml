@@ -1,0 +1,101 @@
+# Prometheus rules for an OpenBao that you would be woken up for.
+#
+# Every expression here was written against the metric names 2.6.1 actually
+# emits at /v1/sys/metrics?format=prometheus, which are `vault_*`, not
+# `openbao_*`. Same compatibility story as the X-Vault-Token header: the fork
+# kept the names, and an alert written from the branding does not fire.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: openbao
+  namespace: openbao
+spec:
+  groups:
+    - name: openbao.audit
+      rules:
+        # THE ONE THAT MATTERS.
+        #
+        # This counter increments only when NO audit device managed to log a
+        # request, which is also the condition under which OpenBao refuses to
+        # serve. So by the time this fires you are already down, and the alert
+        # is telling you why rather than warning you in advance.
+        #
+        # Measured in the lab: with a single file device on a full disk, clients
+        # got HTTP 500 "internal error" and this counter moved.
+        - alert: OpenBaoAuditFailing
+          expr: increase(vault_audit_log_request_failure[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: OpenBao could not audit a request and is refusing traffic
+            description: >-
+              No enabled audit device logged a request. OpenBao returns 500 to
+              every client until at least one device can write. Check free space
+              on the audit volume first.
+
+        # THE ONE THAT WOULD HAVE SAVED YOU.
+        #
+        # With two devices enabled and one of them broken, the counter above
+        # stays at zero, because one device succeeding is enough. Verified: the
+        # file device on a full disk while a stdout device kept working produced
+        # HTTP 200 and no increment at all.
+        #
+        # There is no per-device failure metric to alert on. The only signal is
+        # the server log, so this rule assumes a log pipeline that turns the
+        # line below into a metric:
+        #
+        #   [ERROR] audit: backend failed to log request: backend=local-file/
+        #
+        # If you have no such pipeline, alert on free space instead, which is
+        # the underlying cause in most cases.
+        - alert: OpenBaoAuditDeviceDegraded
+          expr: increase(log_messages_total{job="openbao", level="error", subsystem="audit"}[10m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: One OpenBao audit device is failing while others still work
+            description: >-
+              Requests are still being served, which means this is not yet an
+              outage. It becomes one the moment the last working device fails.
+
+    - name: openbao.core
+      rules:
+        # THE ONE WITH THE TRAP IN IT.
+        #
+        # vault_core_unsealed is emitted twice, once with an empty cluster label
+        # and once with the real cluster name:
+        #
+        #   vault_core_unsealed{cluster=""} 0
+        #   vault_core_unsealed{cluster="vault-cluster-b8a07764"} 1
+        #
+        # An alert on `vault_core_unsealed == 0` therefore fires forever on a
+        # perfectly healthy, unsealed instance. Filter the empty label out.
+        - alert: OpenBaoSealed
+          expr: vault_core_unsealed{cluster!=""} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: OpenBao is sealed
+            description: >-
+              Nothing is being served. With a Shamir seal this needs key holders;
+              with auto-unseal from Module 3 it usually means the seal backend is
+              unreachable, so check that before starting a key ceremony.
+
+        # Metrics keep answering when almost everything else has stopped,
+        # including during an audit outage, because the endpoint is
+        # unauthenticated and not audited. That makes scrape failure a genuine
+        # signal rather than noise.
+        - alert: OpenBaoScrapeFailing
+          expr: up{job="openbao"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Prometheus cannot scrape OpenBao
+            description: >-
+              The metrics endpoint answers while OpenBao is sealed and while its
+              audit devices are failing, so losing the scrape usually means the
+              process or the network is gone rather than OpenBao being busy.

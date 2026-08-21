@@ -1,0 +1,103 @@
+# An overlay on lesson 1.3's values that turns auditing on and gives this lesson
+# a disk it can deliberately fill.
+#
+#   helm upgrade openbao openbao/openbao --version 0.28.6 -n openbao \
+#     -f ../../module-1-architecture-first-deployment/lesson-1.3-standalone-helm-tls/values-standalone.yaml \
+#     -f values-audit-volume.yaml
+#   kubectl -n openbao delete pod openbao-0     # the chart uses OnDelete
+#   # then unseal again, three shares, as in Module 3
+#
+# AUDIT DEVICES ARE CONFIGURATION, NOT AN API CALL.
+#
+# `bao audit enable file file_path=...` is still in the CLI's own help text, and
+# on 2.6.1 it fails:
+#
+#   Code: 400. Errors:
+#   * cannot enable audit device via API; use declarative, config-based audit
+#     device management instead
+#
+# So the device is declared in the server config below and arrives with the
+# process. That is better for GitOps and worse for anyone following a tutorial
+# written before the change, which is most of them.
+#
+# The whole `standalone.config` string is repeated here because Helm replaces
+# strings rather than merging them. Everything except the audit stanza and the
+# telemetry stanza is lesson 1.3's config, unchanged.
+server:
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address         = "[::]:8200"
+        cluster_address = "[::]:8201"
+        tls_cert_file   = "/openbao/tls/tls.crt"
+        tls_key_file    = "/openbao/tls/tls.key"
+
+        # Serve Prometheus metrics on the same listener without a token. The
+        # endpoint exists either way, but it answers 400 until telemetry is
+        # configured, and it demands a token until this is set.
+        telemetry {
+          unauthenticated_metrics_access = true
+        }
+      }
+
+      storage "file" {
+        path = "/openbao/data"
+      }
+
+      # Without this stanza /v1/sys/metrics has nothing to return: the Prometheus
+      # sink is not enabled by default. The retention time is how long the
+      # in-memory aggregates live, not how long your Prometheus keeps them.
+      telemetry {
+        prometheus_retention_time = "24h"
+        disable_hostname          = true
+      }
+
+      # The audit device. Every request and every response gets a line, and if
+      # this file cannot be written, OpenBao stops answering. That is deliberate
+      # and it is the subject of the drill in this lesson.
+      audit "file" "local-file" {
+        description = "request and response log for the lab"
+        options {
+          file_path = "/openbao/audit/audit.log"
+        }
+      }
+
+      # A second device, and the reason the CLI's own help tells you to run more
+      # than one: a request is audited successfully if ANY enabled device logs
+      # it. With only the file device, a full disk stops OpenBao serving. With
+      # this one alongside it, the same full disk is an incident you have time
+      # to fix.
+      #
+      # stdout is the pragmatic second device in Kubernetes, because the
+      # container runtime already collects it. Note what that means: your audit
+      # log, tokens HMACed but paths in clear, now flows into whatever log
+      # pipeline the cluster has, with whatever retention and access that has.
+      audit "file" "stdout" {
+        description = "second device, so one full disk is not an outage"
+        options {
+          file_path = "stdout"
+        }
+      }
+
+  volumes:
+    - name: tls
+      secret:
+        secretName: openbao-tls
+    - name: audit
+      emptyDir:
+        medium: Memory
+        # DELIBERATELY TINY. 4Mi is not a production audit target; it is small
+        # enough that a few hundred requests fill it, which is the only
+        # practical way to rehearse an audit device that cannot write. In
+        # production this is a real disk with real alerting on free space.
+        sizeLimit: 4Mi
+
+  volumeMounts:
+    - name: tls
+      mountPath: /openbao/tls
+      readOnly: true
+    - name: audit
+      mountPath: /openbao/audit
