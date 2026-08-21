@@ -1,0 +1,47 @@
+# The Vault OSS 1.14 side of the migration lab, and nothing more.
+#
+#   helm repo add hashicorp https://helm.releases.hashicorp.com
+#   helm install vault hashicorp/vault --version 0.25.0 \
+#     -n vault --create-namespace -f vault-values.yaml
+#
+# Chart 0.25.0 is the last one whose appVersion is 1.14.0, which is the release
+# OpenBao forked from and therefore the one this migration is validated against.
+# Anything newer is a Vault that OpenBao never was, and the storage
+# compatibility argument stops applying.
+#
+# TLS is off here on purpose. This instance exists to be migrated away from in
+# the next twenty minutes, on a laptop, and every certificate it does not have
+# is one fewer thing between you and the actual lesson. Do not read this file as
+# a template for running Vault.
+server:
+  image:
+    repository: hashicorp/vault
+    tag: "1.14.0"
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+      listener "tcp" {
+        address     = "[::]:8200"
+        tls_disable = 1
+      }
+      storage "file" {
+        path = "/vault/data"
+      }
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    storageClass: local-path
+  readinessProbe:
+    enabled: true
+    failureThreshold: 2
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  livenessProbe:
+    enabled: false
+injector:
+  enabled: false
+ui:
+  enabled: false
+csi:
+  enabled: false

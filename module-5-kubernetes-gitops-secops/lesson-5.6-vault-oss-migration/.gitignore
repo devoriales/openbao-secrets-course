@@ -1,0 +1,2 @@
+# Lab output: an archive of a Vault data directory. Never in the repository.
+vault-data-*.tgz
