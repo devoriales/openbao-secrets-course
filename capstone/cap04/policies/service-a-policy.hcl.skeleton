@@ -1,0 +1,12 @@
+# CAP04, service A. A skeleton.
+#
+# One path. Not the mount, not a prefix: the exact credential path this service
+# reads, and the single capability it needs to read it.
+#
+# Before you write it, answer: does an agent that renews a lease need any
+# capability beyond reading the credential? Check what the sidecar actually
+# calls, in the audit log, rather than guessing.
+
+path "# ?" {
+  capabilities = [# ?]
+}

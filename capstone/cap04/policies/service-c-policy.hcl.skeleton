@@ -1,0 +1,15 @@
+# CAP04, service C. A skeleton.
+#
+# This one needs something the other two do not, because it manages its own
+# lease. Work out what from the audit log: run the service, let it renew once,
+# and look at which paths its token actually touched.
+#
+# Two entries. One is obvious.
+
+path "# ?" {
+  capabilities = [# ?]
+}
+
+path "# ?" {
+  capabilities = [# ?]
+}

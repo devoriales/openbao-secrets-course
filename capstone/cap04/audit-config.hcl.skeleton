@@ -1,0 +1,45 @@
+# CAP04, the audit devices. A skeleton, and a correction.
+#
+# THE COMMAND IN MOST TUTORIALS DOES NOT WORK ON 2.6.1.
+#
+#   bao audit enable file file_path=/openbao/audit/audit.log
+#   Code: 400. Errors:
+#   * cannot enable audit device via API; use declarative, config-based audit
+#     device management instead
+#
+# Audit devices are server configuration now, which means they go in the Helm
+# values for the production cluster and arrive with the process. Better for
+# GitOps, and it means enabling auditing on a running cluster is a rolling
+# restart rather than an API call. On the CAP01 cluster that restart costs you
+# nothing, because every node unseals itself: this is the first time in the
+# course that auto-unseal pays for itself in an ordinary operation rather than
+# in an incident.
+#
+# Add these stanzas to the production values' config block, then roll the pods.
+# Standbys first, then step down the leader and roll it last.
+
+audit "file" "local-file" {
+  options {
+    file_path = # ?
+  }
+}
+
+# THINK. Why a second device at all?
+#
+# Lesson 5.5 measured the answer: with one device on a full disk, OpenBao
+# returns 500 to every request until it can write again. With two, the same full
+# disk is an error line in the log and nothing else, because a request is
+# audited successfully if ANY device logs it.
+#
+# The cost is that your audit trail, paths in clear, now also flows wherever this
+# device sends it.
+audit "file" "stdout" {
+  options {
+    file_path = # ?
+  }
+}
+
+# And the volume the file device writes to. In the lab it is a small emptyDir,
+# deliberately small, so CAP05's neighbours can fill it. In production it is a
+# real disk with alerting on free space, because free space is the only signal
+# that arrives before the outage rather than with it.

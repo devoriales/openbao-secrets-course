@@ -1,0 +1,12 @@
+# CAP04, service B. A skeleton.
+#
+# Remember whose policy this really is. ESO authenticates as its own
+# ServiceAccount and reads on behalf of every ExternalSecret in the cluster, so
+# this policy is not "what service B may read": it is "what may be copied into
+# Kubernetes Secrets, anywhere".
+#
+# Write it as the second thing, and keep it as short as that framing implies.
+
+path "# ?" {
+  capabilities = [# ?]
+}
