@@ -11,7 +11,7 @@
 #
 # Nothing here installs the injector. The chart from lesson 1.3 already did:
 # `openbao-agent-injector` runs docker.io/hashicorp/vault-k8s:1.7.2, the upstream
-# Vault injector, and it injects quay.io/openbao/openbao:2.6.1 as the agent.
+# Vault injector, and it injects quay.io/openbao/openbao:2.6.2 as the agent.
 set -euo pipefail
 : "${BAO_ADDR:?set BAO_ADDR}"
 : "${BAO_TOKEN:?set BAO_TOKEN}"

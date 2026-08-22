@@ -6,14 +6,14 @@
 # Nothing here needs new infrastructure: any unsealed OpenBao will do. Point
 # BAO_ADDR and BAO_TOKEN at one and pass the keys it was initialised with.
 #
-# Commands used, all from OpenBao 2.6.1:
+# Commands used, all from OpenBao 2.6.2:
 #   bao operator key-status    current barrier key term, install time, use count
 #   bao operator rotate-keys   new unseal or recovery SHARES  (this replaced rekey)
 #   bao operator rotate        new BARRIER ENCRYPTION KEY
 #
 # `bao operator rekey` is NOT used, because it no longer works. The CLI still
 # ships the subcommand and it still prints a deprecation notice pointing here,
-# but the server endpoint is gone in 2.6.1:
+# but the server endpoint is gone in 2.6.2:
 #   PUT /v1/sys/rekey/init  ->  405, "unsupported operation"
 #
 # Usage:

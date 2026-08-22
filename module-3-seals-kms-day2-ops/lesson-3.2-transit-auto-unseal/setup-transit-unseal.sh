@@ -58,7 +58,7 @@ echo "==> 1. The unsealer: a plain Shamir instance holding one Transit key"
 helm repo add openbao https://openbao.github.io/openbao-helm >/dev/null 2>&1 || true
 helm repo update >/dev/null 2>&1 || true
 kubectl create namespace openbao-unsealer >/dev/null 2>&1 || true
-helm install unsealer openbao/openbao -n openbao-unsealer --version 0.28.6 \
+helm install unsealer openbao/openbao -n openbao-unsealer --version 0.29.2 \
   --values "$HERE/values-unsealer.yaml" >/dev/null
 
 # The service here is unsealer-openbao, not unsealer. Port-forwarding to the
@@ -93,7 +93,7 @@ echo "==> 3. The production instance, auto-unsealed"
 kubectl create namespace openbao >/dev/null 2>&1 || true
 kubectl -n openbao delete secret unsealer-token >/dev/null 2>&1 || true
 kubectl -n openbao create secret generic unsealer-token --from-literal=token="$UT" >/dev/null
-helm install openbao openbao/openbao -n openbao --version 0.28.6 \
+helm install openbao openbao/openbao -n openbao --version 0.29.2 \
   --values "$HERE/values-autounseal.yaml" >/dev/null
 
 open_tunnel openbao openbao 8200 /tmp/pf-main.log

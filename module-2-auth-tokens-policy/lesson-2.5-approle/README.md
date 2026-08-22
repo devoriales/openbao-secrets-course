@@ -28,7 +28,7 @@ workload to it, your workload's login failure is the alarm.
 makes it safe to log which SecretID went to which runner.
 
 **CIDR binding** is defence in depth. Note the real error carries `%!w(<nil>)`, an upstream Go
-formatting bug in OpenBao 2.6.1. Cosmetic, and not something you caused.
+formatting bug in OpenBao 2.6.2. Cosmetic, and not something you caused.
 
 **Response wrapping** is the important one:
 

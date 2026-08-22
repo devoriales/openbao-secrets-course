@@ -6,7 +6,7 @@ The lesson itself lives on devoriales.com. This folder holds only what that less
 to apply.
 
 Validated on 2026-08-22: **HashiCorp Vault 1.14.0** (chart `hashicorp/vault` **0.25.0**) migrated
-to **OpenBao v2.6.1** (chart **openbao-0.28.6**), both standalone on the file storage backend with
+to **OpenBao v2.6.2** (chart **openbao-0.29.2**), both standalone on the file storage backend with
 a Shamir seal, on k3d. See [`VERSIONS.md`](../../VERSIONS.md) for the full pinned toolchain.
 
 ## Contents
@@ -50,7 +50,7 @@ If anything looks wrong:
 
 ## What the artifacts prove
 
-**The barrier is the same barrier.** OpenBao 2.6.1 started on Vault 1.14's data directory and
+**The barrier is the same barrier.** OpenBao 2.6.2 started on Vault 1.14's data directory and
 reported `Initialized true`, `Sealed true`, `Total Shares 5`, `Threshold 3` without being told
 anything. Vault's three unseal shares opened it. Vault's root token then worked unchanged.
 

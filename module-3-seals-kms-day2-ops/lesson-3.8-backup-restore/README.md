@@ -29,15 +29,14 @@ from [lesson 3.7](../lesson-3.7-raft-ha).
 [Deuxfleurs](https://git.deuxfleurs.fr/Deuxfleurs/garage), **AGPL-3.0**. It is the S3
 target. The licence is worth knowing rather than discovering: running it yourself as a backup
 target, which is what this lesson does, is unremarkable, but the network copyleft clause
-applies to anyone offering a modified Garage as a service. **Not MinIO:** `minio/minio` has
-been archived since 2026 and receives no further
-security fixes, which disqualifies it from a course about protecting secrets. Garage is
-25.8 MB, which matters on a laptop already running three OpenBao nodes.
+applies to anyone offering a modified Garage as a service. Garage is 25.8 MB, which matters on
+a laptop already running three OpenBao nodes. Any S3 compatible target works: the lesson is the
+snapshot and the restore, not the bucket.
 
 **`amazon/aws-cli:2.36.16`** in the snapshot job, the same pin as lesson 3.4. It is the
 real AWS CLI pointed at a different `--endpoint-url`, not a mock.
 
-**`quay.io/openbao/openbao:2.6.1`** and chart `openbao/openbao` 0.28.6, unchanged from
+**`quay.io/openbao/openbao:2.6.2`** and chart `openbao/openbao` 0.29.2, unchanged from
 lesson 3.7. Raft snapshots are built into the binary; there is no plugin and no custom
 image for any of this.
 
@@ -149,7 +148,7 @@ so the drill passes on a lucky configuration and fails on an unlucky one.
 ## Break-glass changed, and the usual runbook no longer works
 
 Every generate-root runbook you will find starts with `bao operator generate-root -init`
-and no credentials. On 2.6.1:
+and no credentials. On 2.6.2:
 
 ```
 $ bao operator generate-root -init
@@ -166,7 +165,7 @@ default**: the listener parameter `disable_unauthed_generate_root_endpoints` has
 to true since v2.5.3, because unauthenticated callers could cancel an in-flight root
 generation, a denial of service against the exact ceremony you run in an emergency.
 
-**So a default 2.6.1 instance has no no-token recovery path.** If you want one, you set it
+**So a default 2.6.2 instance has no no-token recovery path.** If you want one, you set it
 before the incident:
 
 ```hcl

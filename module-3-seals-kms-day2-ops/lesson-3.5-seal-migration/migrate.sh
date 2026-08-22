@@ -14,7 +14,7 @@
 #                                 so the image never changes mid-migration.
 #   lesson 3.2's unsealer         a small OpenBao holding one Transit key.
 #                                 Installed here by reusing that lesson's values.
-#   openbao/openbao 0.28.6 chart  same chart as every other lesson.
+#   openbao/openbao 0.29.2 chart  same chart as every other lesson.
 #
 # Usage: ./migrate.sh [step]      step = 1, 2, 3, or "all" (default)
 set -euo pipefail
@@ -63,7 +63,7 @@ helm repo update >/dev/null 2>&1 || true
 kubectl create namespace "$NS" >/dev/null 2>&1 || true
 kubectl -n "$NS" delete secret softhsm-pin >/dev/null 2>&1 || true
 kubectl -n "$NS" create secret generic softhsm-pin --from-literal=pin="$PIN" >/dev/null
-helm install openbao openbao/openbao -n "$NS" --version 0.28.6 \
+helm install openbao openbao/openbao -n "$NS" --version 0.29.2 \
   --values "$HERE/values-step1-shamir.yaml" >/dev/null
 wait_running; pf
 export BAO_ADDR=http://127.0.0.1:8200
@@ -86,7 +86,7 @@ echo "==> STEP 2  Shamir to Transit"
 # The unsealer from lesson 3.2, installed exactly as that lesson installs it.
 if ! helm status unsealer -n "$NS_UNSEALER" >/dev/null 2>&1; then
   kubectl create namespace "$NS_UNSEALER" >/dev/null 2>&1 || true
-  helm install unsealer openbao/openbao -n "$NS_UNSEALER" --version 0.28.6 \
+  helm install unsealer openbao/openbao -n "$NS_UNSEALER" --version 0.29.2 \
     --values "$L32/values-unsealer.yaml" >/dev/null
   for _ in $(seq 60); do
     [ "$(kubectl -n "$NS_UNSEALER" get pod/unsealer-openbao-0 -o jsonpath='{.status.phase}' 2>/dev/null || true)" = "Running" ] && break
@@ -111,7 +111,7 @@ HCL
   echo "   unsealer up, transit key created, scoped token stored"
 fi
 
-helm upgrade openbao openbao/openbao -n "$NS" --version 0.28.6 \
+helm upgrade openbao openbao/openbao -n "$NS" --version 0.29.2 \
   --values "$HERE/values-step2-transit.yaml" >/dev/null
 kubectl -n "$NS" delete pod openbao-0 >/dev/null 2>&1 || true
 sleep 5; wait_running; pf
@@ -150,7 +150,7 @@ RENDERED="$(mktemp)"; trap 'rm -f "$RENDERED"' EXIT
 sed -e "s|PLUGIN_BINARY|${PLUGIN_BINARY}|" -e "s|PLUGIN_SHA256|${PLUGIN_SHA256}|" \
     "$HERE/values-step3-pkcs11.yaml" > "$RENDERED"
 
-helm upgrade openbao openbao/openbao -n "$NS" --version 0.28.6 --values "$RENDERED" >/dev/null
+helm upgrade openbao openbao/openbao -n "$NS" --version 0.29.2 --values "$RENDERED" >/dev/null
 kubectl -n "$NS" delete pod openbao-0 >/dev/null 2>&1 || true
 sleep 5; wait_running; pf
 export BAO_ADDR=http://127.0.0.1:8200

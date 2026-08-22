@@ -1,6 +1,6 @@
 # A three node OpenBao cluster on Raft integrated storage.
 #
-# This is the same chart every other lesson uses, openbao/openbao 0.28.6, with
+# This is the same chart every other lesson uses, openbao/openbao 0.29.2, with
 # the standalone mode turned off and HA turned on. No new images and no
 # plugins: Raft is built into the OpenBao binary, so `storage "raft"` needs
 # nothing that `storage "file"` did not.
@@ -19,7 +19,7 @@ server:
   # unless something makes the directory first. One mkdir, once, per node.
   extraInitContainers:
     - name: mkdir-raft
-      image: quay.io/openbao/openbao:2.6.1
+      image: quay.io/openbao/openbao:2.6.2
       command: ["/bin/sh", "-ec", "mkdir -p /openbao/data/raft"]
       volumeMounts:
         - name: data

@@ -93,7 +93,7 @@ line is missing when you expected a migration, the config is not what you think 
 ## Same-type migration
 
 The OpenBao documentation states that AWSKMS to AWSKMS migration is not supported. On
-**2.6.1 that is not what happens**: an `awskms` seal migrated to a second `awskms` seal
+**2.6.2 that is not what happens**: an `awskms` seal migrated to a second `awskms` seal
 with a different key, entered migration mode normally, accepted the migrate unseal, and
 afterwards opened with only the new key present in the config.
 

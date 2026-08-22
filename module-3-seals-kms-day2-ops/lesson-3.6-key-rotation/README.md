@@ -25,7 +25,7 @@ infrastructure is needed: any unsealed OpenBao works, including the one from les
 
 `bao operator key-status` is how you tell the first two apart after the fact.
 
-## `bao operator rekey` does not work in 2.6.1
+## `bao operator rekey` does not work in 2.6.2
 
 The CLI still ships the subcommand, and it tells you itself:
 

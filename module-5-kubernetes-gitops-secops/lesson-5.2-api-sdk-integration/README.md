@@ -5,7 +5,7 @@ Artifacts for lesson 5.2 of [OpenBao Secrets Management: Production Operations o
 The lesson itself lives on devoriales.com. This folder holds only what that lesson asks you
 to apply.
 
-Validated on 2026-08-21 against OpenBao **v2.6.1**, chart **openbao-0.28.6**, the OpenBao Go
+Validated on 2026-08-21 against OpenBao **v2.6.2**, chart **openbao-0.29.2**, the OpenBao Go
 client **github.com/openbao/openbao/api/v2 v2.6.0**, and **Go 1.26.1**. See
 [`VERSIONS.md`](../../VERSIONS.md) for the full pinned toolchain.
 

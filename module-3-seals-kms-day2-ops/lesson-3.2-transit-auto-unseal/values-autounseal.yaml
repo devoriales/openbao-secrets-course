@@ -1,7 +1,7 @@
 global:
   tlsDisable: true
 server:
-  image: { repository: openbao/openbao, tag: "2.6.1" }
+  image: { repository: openbao/openbao, tag: "2.6.2" }
   extraSecretEnvironmentVars:
     - envName: BAO_TOKEN
       secretName: unsealer-token

@@ -27,7 +27,7 @@ global:
 server:
   image:
     repository: openbao/openbao
-    tag: "2.6.1"
+    tag: "2.6.2"
 
   standalone:
     enabled: true

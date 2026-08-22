@@ -22,7 +22,7 @@ recovery before you have to do it for real.
 | For | You need |
 |---|---|
 | Every lab | Docker Engine — Docker Desktop, [Colima](https://github.com/abiosoft/colima), or a native Linux install |
-| Every lab | [k3d](https://k3d.io/) v5.9.0, kubectl v1.36.3, Helm **v3.21.3** |
+| Every lab | [k3d](https://k3d.io/) v5.9.0, kubectl v1.36.4, Helm **v3.21.4** |
 | Every lab | The `bao` CLI on your host, not only inside the cluster |
 | Module 5.2 and the capstone | Go 1.26.5 |
 
@@ -30,7 +30,7 @@ Working Kubernetes knowledge is assumed: pods, services, ServiceAccounts, Helm. 
 OpenBao or Vault experience is needed.
 
 **Helm 4 is not supported here.** Helm's current release is 4.x, but the OpenBao chart has no
-Helm 4 test coverage upstream, so this course pins **3.21.3**. Install that version explicitly
+Helm 4 test coverage upstream, so this course pins **3.21.4**. Install that version explicitly
 rather than taking whatever your package manager calls latest.
 
 **Watch the Docker VM's disk, not your host's.** k3d nodes share the container runtime's
@@ -97,7 +97,9 @@ reference:
 git checkout v1.0-openbao-2.6.1
 ```
 
-The current baseline is OpenBao **v2.6.1** with Helm chart **openbao-0.28.6**.
+The current baseline is OpenBao **v2.6.2** with Helm chart **openbao-0.29.2**, tagged
+`v1.1-openbao-2.6.2`. The previous baseline, OpenBao v2.6.1 with chart openbao-0.28.6, remains
+available at `v1.0-openbao-2.6.1`.
 
 ## License
 

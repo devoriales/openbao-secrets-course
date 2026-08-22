@@ -52,7 +52,7 @@ bao token revoke <token>                  # revoke, cascading to children
 bao token revoke -accessor <accessor>     # revoke without ever seeing the token
 ```
 
-`bao token lookup -self` is not valid in OpenBao 2.6.1; bare `bao token lookup` does it.
+`bao token lookup -self` is not valid in OpenBao 2.6.2; bare `bao token lookup` does it.
 
 ## Cleanup
 

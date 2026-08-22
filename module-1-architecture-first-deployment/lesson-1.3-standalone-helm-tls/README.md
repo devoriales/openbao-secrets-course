@@ -53,7 +53,7 @@ helm repo add openbao https://openbao.github.io/openbao-helm
 helm repo update
 helm install openbao openbao/openbao \
   --namespace openbao \
-  --version 0.28.6 \
+  --version 0.29.2 \
   --values values-standalone.yaml \
   --wait
 ```

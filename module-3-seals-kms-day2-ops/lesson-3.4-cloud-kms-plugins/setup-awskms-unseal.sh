@@ -14,7 +14,7 @@
 #   openbao-plugin-kms-aws v0.1.0   the external KMS plugin that implements
 #                                   seal "awskms". Baked into the image by this
 #                                   directory's Dockerfile.
-#   openbao/openbao:2.6.1           the default distribution. No custom base
+#   openbao/openbao:2.6.2           the default distribution. No custom base
 #                                   image needed here, because the plugin is a
 #                                   static Go binary. Contrast lesson 3.3.
 #
@@ -82,7 +82,7 @@ helm repo update >/dev/null 2>&1 || true
 kubectl -n "$NS" delete secret awskms-creds >/dev/null 2>&1 || true
 kubectl -n "$NS" create secret generic awskms-creds \
   --from-literal=access_key=test --from-literal=secret_key=test >/dev/null
-helm install openbao openbao/openbao -n "$NS" --version 0.28.6 --values "$RENDERED" >/dev/null
+helm install openbao openbao/openbao -n "$NS" --version 0.29.2 --values "$RENDERED" >/dev/null
 
 for _ in $(seq 60); do
   phase="$(kubectl -n "$NS" get pod/openbao-0 -o jsonpath='{.status.phase}' 2>/dev/null || true)"

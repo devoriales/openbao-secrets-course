@@ -13,7 +13,7 @@
 #
 #   helm repo add external-secrets https://charts.external-secrets.io
 #   helm install external-secrets external-secrets/external-secrets \
-#     --version 2.8.0 -n external-secrets --create-namespace --wait
+#     --version 2.9.0 -n external-secrets --create-namespace --wait
 set -euo pipefail
 : "${BAO_ADDR:?set BAO_ADDR}"
 : "${BAO_TOKEN:?set BAO_TOKEN}"

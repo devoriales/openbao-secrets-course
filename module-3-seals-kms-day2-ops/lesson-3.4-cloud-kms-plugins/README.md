@@ -23,7 +23,7 @@ Needs docker, k3d, kubectl and helm, plus the lesson 1.2 cluster.
 
 ## Every component, and why it is here
 
-**`openbao/openbao:2.6.1`** is the default distribution, Alpine based. Lesson 3.3
+**`openbao/openbao:2.6.2`** is the default distribution, Alpine based. Lesson 3.3
 needed the `openbao-ubi` glibc build; this one does not, for the reason below.
 
 **`openbao-plugin-kms-aws`, release `kms-aws-v0.1.0`**, from

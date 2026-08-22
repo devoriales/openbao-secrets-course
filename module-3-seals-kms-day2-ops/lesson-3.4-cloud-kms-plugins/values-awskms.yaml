@@ -1,5 +1,5 @@
 server:
-  # Built by this directory's Dockerfile: the stock openbao/openbao:2.6.1
+  # Built by this directory's Dockerfile: the stock openbao/openbao:2.6.2
   # Alpine image plus the openbao-plugin-kms-aws binary. registry must be
   # emptied because the chart otherwise prepends quay.io to a locally imported
   # image, the same trap as lesson 3.3.

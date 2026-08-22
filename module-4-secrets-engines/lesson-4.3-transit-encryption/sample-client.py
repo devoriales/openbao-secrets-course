@@ -88,7 +88,7 @@ def rewrap_batch(ciphertexts, references=None):
     THE TRAP THIS FUNCTION EXISTS TO HANDLE: a batch containing failures still
     returns HTTP 200. The per-item errors live inside batch_results, so
     raise_for_status() sees a clean response and a migration reports success
-    while silently skipping rows. Verified against 2.6.1: one bad entry among
+    while silently skipping rows. Verified against 2.6.2: one bad entry among
     two returned 200 with {"error": "invalid ciphertext: version is too new"}
     sitting in the second slot.
 

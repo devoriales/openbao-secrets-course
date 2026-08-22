@@ -51,7 +51,7 @@ echo "== anything refused =="
 # READ THIS BEFORE WRITING A DETECTION ON THIS FILE.
 #
 # The obvious field is auth.policy_results.allowed, and it lies. Measured on
-# 2.6.1 with a token that does not exist: the response entry carries
+# 2.6.2 with a token that does not exist: the response entry carries
 # "error":"permission denied" at the TOP LEVEL, while
 # auth.policy_results.allowed is still true. A query keyed on allowed == false
 # finds nothing and quietly reports a clean cluster.

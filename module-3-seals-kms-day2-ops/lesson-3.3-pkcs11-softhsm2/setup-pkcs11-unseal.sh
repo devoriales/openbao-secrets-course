@@ -48,7 +48,7 @@ helm repo update >/dev/null 2>&1 || true
 kubectl create namespace "$NS" >/dev/null 2>&1 || true
 kubectl -n "$NS" delete secret softhsm-pin >/dev/null 2>&1 || true
 kubectl -n "$NS" create secret generic softhsm-pin --from-literal=pin="$PIN" >/dev/null
-helm install openbao openbao/openbao -n "$NS" --version 0.28.6 --values "$RENDERED" >/dev/null
+helm install openbao openbao/openbao -n "$NS" --version 0.29.2 --values "$RENDERED" >/dev/null
 
 # Running, not Ready. The chart's readiness probe is `bao status`, which exits
 # non-zero until the instance is initialised, and it cannot be initialised

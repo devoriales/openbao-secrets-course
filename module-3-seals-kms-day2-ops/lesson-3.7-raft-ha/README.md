@@ -18,8 +18,8 @@ NS=openbao-mig KEYS_FILE=/tmp/mig-keys.txt ./standalone-to-ha.sh
 
 ## What it uses
 
-Nothing new. The same `openbao/openbao` 0.28.6 chart and the stock
-`quay.io/openbao/openbao:2.6.1` image as every other lesson. **Raft is built into the
+Nothing new. The same `openbao/openbao` 0.29.2 chart and the stock
+`quay.io/openbao/openbao:2.6.2` image as every other lesson. **Raft is built into the
 OpenBao binary**, so unlike PKCS#11 in 3.3 or AWS KMS in 3.4 there is no plugin to
 register, no checksum to pin and no custom image to build. `storage "raft"` needs exactly
 what `storage "file"` needed.

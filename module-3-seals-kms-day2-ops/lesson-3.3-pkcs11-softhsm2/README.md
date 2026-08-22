@@ -46,7 +46,7 @@ comes from:
 
 |  | `openbao/openbao-hsm` | default image + plugin |
 |---|---|---|
-| `bao version` | `v2.6.1+hsm ... (cgo)` | `v2.6.1` |
+| `bao version` | `v2.6.2+hsm ... (cgo)` | `v2.6.2` |
 | Startup banner | `builtin: true`, `Cgo: enabled` | `builtin: false`, `Cgo: disabled` |
 | On startup | prints a discontinuation warning | clean |
 | After v2.7.0 | gone | supported |

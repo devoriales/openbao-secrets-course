@@ -5,7 +5,7 @@ Artifacts for lesson 4.3 of [OpenBao Secrets Management: Production Operations o
 The lesson itself lives on devoriales.com. This folder holds only what that lesson asks you
 to apply.
 
-Validated on 2026-08-13 against OpenBao **v2.6.1**, chart **openbao-0.28.6**, Python
+Validated on 2026-08-13 against OpenBao **v2.6.2**, chart **openbao-0.29.2**, Python
 **3.13**, `requests` **2.32.4** and `cryptography` **49.0.0**. See
 [`VERSIONS.md`](../../VERSIONS.md) for the full pinned toolchain.
 

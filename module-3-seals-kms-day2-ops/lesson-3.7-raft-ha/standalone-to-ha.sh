@@ -9,8 +9,8 @@
 #   3. install the HA release, which reuses data-openbao-0 for node 0
 #   4. unseal each node with the ORIGINAL keys; nodes 1 and 2 join by retry_join
 #
-# What this uses: the same openbao/openbao 0.28.6 chart and the stock
-# quay.io/openbao/openbao:2.6.1 image. Raft is built into the binary, so
+# What this uses: the same openbao/openbao 0.29.2 chart and the stock
+# quay.io/openbao/openbao:2.6.2 image. Raft is built into the binary, so
 # unlike lessons 3.3 and 3.4 there is no custom image and no plugin.
 #
 # THIS IS AN OUTAGE. The instance is down from step 1 until step 4 finishes.
@@ -57,7 +57,7 @@ done
 kubectl -n "$NS" logs job/storage-migrate 2>/dev/null | tail -1 | sed 's/^/   /'
 
 echo "==> 3. Install the HA release over the same claim"
-helm install openbao openbao/openbao -n "$NS" --version 0.28.6 \
+helm install openbao openbao/openbao -n "$NS" --version 0.29.2 \
   --values "$HERE/values-ha-raft.yaml" >/dev/null
 wait_running openbao-0
 

@@ -66,13 +66,13 @@ Versions this lesson was validated against are in [`VERSIONS.md`](../../VERSIONS
 
 ```bash
 k3d version          # v5.9.0
-kubectl version      # v1.36.3  (within one minor of the cluster is fine)
-helm version         # v3.21.3  — Helm 3.x, NOT Helm 4
-bao version          # OpenBao v2.6.1
+kubectl version      # v1.36.4  (within one minor of the cluster is fine)
+helm version         # v3.21.4  — Helm 3.x, NOT Helm 4
+bao version          # OpenBao v2.6.2
 ```
 
 **Helm must be 3.x.** Helm's current release is 4.x, but the OpenBao chart has no Helm 4
-test coverage upstream, so this course pins 3.21.3. `bootstrap.sh` refuses to run on
+test coverage upstream, so this course pins 3.21.4. `bootstrap.sh` refuses to run on
 Helm 4 rather than letting you discover it three lessons later.
 
 ### Installing the `bao` CLI on your host
@@ -84,20 +84,20 @@ You need it on the host, not only inside the cluster.
 brew install openbao
 
 # Linux / WSL2 (x86_64)
-curl -sSLO https://github.com/openbao/openbao/releases/download/v2.6.1/openbao_2.6.1_linux_amd64.tar.gz
-echo "ca8d836eb3a5c80407e45e762300b64e7138c419e78826955f2e4ba4ce6d8a6b  openbao_2.6.1_linux_amd64.tar.gz" | sha256sum -c
-tar -xzf openbao_2.6.1_linux_amd64.tar.gz bao
+curl -sSLO https://github.com/openbao/openbao/releases/download/v2.6.2/openbao_2.6.2_linux_amd64.tar.gz
+echo "8dc11cc5fca0b539a9e352727dacb4e2d304daffcf9a66e0718ac325a20d05aa  openbao_2.6.2_linux_amd64.tar.gz" | sha256sum -c
+tar -xzf openbao_2.6.2_linux_amd64.tar.gz bao
 sudo install -m 0755 bao /usr/local/bin/bao
 ```
 
-Verified SHA-256 sums for v2.6.1, taken from the release's `checksums.txt`:
+Verified SHA-256 sums for v2.6.2, taken from the release's `checksums.txt`:
 
 | Archive | SHA-256 |
 |---|---|
-| `openbao_2.6.1_linux_amd64.tar.gz` | `ca8d836eb3a5c80407e45e762300b64e7138c419e78826955f2e4ba4ce6d8a6b` |
-| `openbao_2.6.1_linux_arm64.tar.gz` | `a74aa73b80000a4340a90edbf27726c0fb0a4537970eab6e1a7e0e211d117b75` |
-| `openbao_2.6.1_darwin_arm64.tar.gz` | `7e648d6c93320ab66ced394fd88528c7122b7c1d991605c8e9b3845262459905` |
-| `openbao_2.6.1_darwin_amd64.tar.gz` | `9b052ea87a7d549b2e1c465b691dcdd7dacb97d0ac899b15bcb23eeca826cb7b` |
+| `openbao_2.6.2_linux_amd64.tar.gz` | `8dc11cc5fca0b539a9e352727dacb4e2d304daffcf9a66e0718ac325a20d05aa` |
+| `openbao_2.6.2_linux_arm64.tar.gz` | `1b408e01f3565ac0cbcb88d637dca271d0515148fb72efdeff4473a34fa50c4e` |
+| `openbao_2.6.2_darwin_arm64.tar.gz` | `4e495376174accc0e014d31e9901f518a974f966850c839f626347eaac05fd52` |
+| `openbao_2.6.2_darwin_amd64.tar.gz` | `64fdf1ce8f410bbc1531d2f0ea142d21b4e755b986542025a00294999a8cfaa5` |
 
 Homebrew's `openbao` formula conflicts with a separate `bao` formula, since both install a
 `bao` binary. If `brew install openbao` complains, uninstall the other one first.

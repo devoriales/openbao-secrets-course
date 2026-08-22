@@ -2,7 +2,7 @@
 
 Three things, and the third is the one that matters.
 
-1. Turn on audit devices, which on 2.6.1 means configuration and a rolling
+1. Turn on audit devices, which on 2.6.2 means configuration and a rolling
    restart rather than an API call.
 2. Tighten each service to one path, and check the tightening by trying to cross
    the lines.

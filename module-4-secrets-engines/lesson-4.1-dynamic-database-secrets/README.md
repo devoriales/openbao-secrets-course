@@ -5,7 +5,7 @@ Artifacts for lesson 4.1 of [OpenBao Secrets Management: Production Operations o
 The lesson itself lives on devoriales.com. This folder holds only what that lesson asks you
 to apply.
 
-Validated on 2026-08-12 against OpenBao **v2.6.1**, chart **openbao-0.28.6** and PostgreSQL
+Validated on 2026-08-12 against OpenBao **v2.6.2**, chart **openbao-0.29.2** and PostgreSQL
 **18.4** (`postgres:18.4-trixie`). See [`VERSIONS.md`](../../VERSIONS.md) for the full pinned
 toolchain.
 

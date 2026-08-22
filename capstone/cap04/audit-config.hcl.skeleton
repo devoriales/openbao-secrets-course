@@ -1,6 +1,6 @@
 # CAP04, the audit devices. A skeleton, and a correction.
 #
-# THE COMMAND IN MOST TUTORIALS DOES NOT WORK ON 2.6.1.
+# THE COMMAND IN MOST TUTORIALS DOES NOT WORK ON 2.6.2.
 #
 #   bao audit enable file file_path=/openbao/audit/audit.log
 #   Code: 400. Errors:

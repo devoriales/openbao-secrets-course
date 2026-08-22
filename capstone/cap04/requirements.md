@@ -2,7 +2,7 @@
 
 | # | Criterion | How you check it |
 |---|---|---|
-| 1 | Two audit devices are enabled through configuration | `bao audit list -detailed` shows both, and neither was enabled with `bao audit enable` because that returns 400 on 2.6.1 |
+| 1 | Two audit devices are enabled through configuration | `bao audit list -detailed` shows both, and neither was enabled with `bao audit enable` because that returns 400 on 2.6.2 |
 | 2 | The cluster was rolled without an unseal ceremony | You deleted three pods, in the right order, and typed no key material |
 | 3 | The audit log records requests and responses | The file grows, and each line parses as JSON |
 | 4 | Values are hashed, paths are not | Find an entry for a database credential read and confirm the username and password are `hmac-sha256:` while `request.path` is in clear |

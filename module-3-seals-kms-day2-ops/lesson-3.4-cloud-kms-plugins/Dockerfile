@@ -2,7 +2,7 @@
 #
 # What goes in here and why
 # -------------------------
-#   openbao/openbao:2.6.1
+#   openbao/openbao:2.6.2
 #       The DEFAULT distribution, Alpine based. Note this is the plain image,
 #       not the openbao-ubi one lesson 3.3 needed. Nothing here requires glibc,
 #       for the reason immediately below.
@@ -26,7 +26,7 @@
 #   docker build -t openbao-awskms:lab .
 #   k3d image import openbao-awskms:lab -c openbao-dev
 
-ARG BAO_VERSION=2.6.1
+ARG BAO_VERSION=2.6.2
 FROM openbao/openbao:${BAO_VERSION}
 
 ARG TARGETARCH

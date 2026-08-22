@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Vault OSS 1.14 to OpenBao 2.6.1, on file storage, with the restore path built
+# Vault OSS 1.14 to OpenBao 2.6.2, on file storage, with the restore path built
 # before anything is touched.
 #
 #   ./migrate.sh backup     # seal Vault, take the archive, verify it opens
@@ -123,7 +123,7 @@ YAML
 
   echo
   echo "Now unseal with VAULT's unseal keys. They are the same keys: the barrier"
-  echo "is the same barrier, and OpenBao 2.6.1 reads the format Vault 1.14 wrote."
+  echo "is the same barrier, and OpenBao 2.6.2 reads the format Vault 1.14 wrote."
   ;;
 
 verify)

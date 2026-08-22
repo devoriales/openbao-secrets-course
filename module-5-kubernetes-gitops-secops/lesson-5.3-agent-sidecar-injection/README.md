@@ -5,9 +5,9 @@ Artifacts for lesson 5.3 of [OpenBao Secrets Management: Production Operations o
 The lesson itself lives on devoriales.com. This folder holds only what that lesson asks you
 to apply.
 
-Validated on 2026-08-22 against OpenBao **v2.6.1**, chart **openbao-0.28.6**, the injector
+Validated on 2026-08-22 against OpenBao **v2.6.2**, chart **openbao-0.29.2**, the injector
 **hashicorp/vault-k8s 1.7.2** that the chart ships, and the agent image the injector uses,
-**quay.io/openbao/openbao:2.6.1**. See [`VERSIONS.md`](../../VERSIONS.md) for the full pinned
+**quay.io/openbao/openbao:2.6.2**. See [`VERSIONS.md`](../../VERSIONS.md) for the full pinned
 toolchain.
 
 ## Contents
@@ -57,7 +57,7 @@ kubectl -n apps get pod $POD -o json \
 ## What the artifacts prove
 
 **The injector is Vault's, the agent is OpenBao's.** `docker.io/hashicorp/vault-k8s:1.7.2` does
-the pod surgery and injects `quay.io/openbao/openbao:2.6.1`. That is why the annotation prefix is
+the pod surgery and injects `quay.io/openbao/openbao:2.6.2`. That is why the annotation prefix is
 `vault.hashicorp.com/` and not `bao.hashicorp.com/`.
 
 **The wrong prefix fails silently.** A pod annotated `bao.hashicorp.com/agent-inject: "true"`

@@ -86,7 +86,7 @@ sleep 8
 kubectl -n "$NS" delete pvc --all >/dev/null 2>&1 || true
 
 echo "==> 3. Rebuild it empty"
-helm install openbao openbao/openbao -n "$NS" --version 0.28.6 --values "$HA_VALUES" >/dev/null
+helm install openbao openbao/openbao -n "$NS" --version 0.29.2 --values "$HA_VALUES" >/dev/null
 for _ in $(seq 60); do
   [ "$(kubectl -n "$NS" get pod openbao-0 -o jsonpath='{.status.phase}' 2>/dev/null)" = "Running" ] && break
   sleep 5
@@ -127,7 +127,7 @@ if bao operator raft snapshot restore /tmp/drill.snap 2>&1 | grep -q 'could not 
   echo "   refused as expected, retrying with -force"
 fi
 # `restore` prints "Error properly closing policy file: ... file already closed"
-# on success in 2.6.1 and exits 0. So stderr is not the signal here: the EXIT
+# on success in 2.6.2 and exits 0. So stderr is not the signal here: the EXIT
 # CODE is. Do not add `|| true` to this line. An earlier draft of this script
 # did, and a genuinely failed restore sailed straight through to the unseal
 # step, which then failed for a completely unrelated-looking reason.

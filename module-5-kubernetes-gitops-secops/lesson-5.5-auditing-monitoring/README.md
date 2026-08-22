@@ -5,7 +5,7 @@ Artifacts for lesson 5.5 of [OpenBao Secrets Management: Production Operations o
 The lesson itself lives on devoriales.com. This folder holds only what that lesson asks you
 to apply.
 
-Validated on 2026-08-22 against OpenBao **v2.6.1** and chart **openbao-0.28.6** on k3d. See
+Validated on 2026-08-22 against OpenBao **v2.6.2** and chart **openbao-0.29.2** on k3d. See
 [`VERSIONS.md`](../../VERSIONS.md) for the full pinned toolchain.
 
 ## Contents
@@ -14,12 +14,12 @@ Validated on 2026-08-22 against OpenBao **v2.6.1** and chart **openbao-0.28.6** 
 |---|---|
 | `values-audit-volume.yaml` | Helm overlay: two declarative audit devices, telemetry, and a deliberately tiny audit volume to fill |
 | `parse-audit-log.sh` | Reading the log with `jq`, including the field that lies about denials |
-| `alerts.yaml` | Prometheus rules written against the metric names 2.6.1 actually emits |
+| `alerts.yaml` | Prometheus rules written against the metric names 2.6.2 actually emits |
 
 ## Setup
 
 ```bash
-helm upgrade openbao openbao/openbao --version 0.28.6 -n openbao \
+helm upgrade openbao openbao/openbao --version 0.29.2 -n openbao \
   -f ../../module-1-architecture-first-deployment/lesson-1.3-standalone-helm-tls/values-standalone.yaml \
   -f values-audit-volume.yaml
 
@@ -48,7 +48,7 @@ bao kv get secret/apps/reporting
 
 ## What the artifacts prove
 
-**Audit devices are configuration now, not an API call.** On 2.6.1, `bao audit enable file ...`,
+**Audit devices are configuration now, not an API call.** On 2.6.2, `bao audit enable file ...`,
 which the CLI's own help still documents, returns:
 
 ```
@@ -104,7 +104,7 @@ is to scrape without a token. Without the first, the endpoint has nothing to ret
 ## Cleanup
 
 ```bash
-helm upgrade openbao openbao/openbao --version 0.28.6 -n openbao \
+helm upgrade openbao openbao/openbao --version 0.29.2 -n openbao \
   -f ../../module-1-architecture-first-deployment/lesson-1.3-standalone-helm-tls/values-standalone.yaml
 kubectl -n openbao delete pod openbao-0   # then unseal
 ```

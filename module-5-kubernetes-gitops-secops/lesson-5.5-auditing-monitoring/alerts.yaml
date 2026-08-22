@@ -1,6 +1,6 @@
 # Prometheus rules for an OpenBao that you would be woken up for.
 #
-# Every expression here was written against the metric names 2.6.1 actually
+# Every expression here was written against the metric names 2.6.2 actually
 # emits at /v1/sys/metrics?format=prometheus, which are `vault_*`, not
 # `openbao_*`. Same compatibility story as the X-Vault-Token header: the fork
 # kept the names, and an alert written from the branding does not fire.

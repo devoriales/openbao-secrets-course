@@ -16,7 +16,7 @@ file. There is a hard ceiling: the listener's max_request_size defaults to
     Code: 413. Errors:
     * http: request body too large
 
-Measured on 2.6.1: a 32,156,332 byte body succeeded, a 34,952,536 byte one did
+Measured on 2.6.2: a 32,156,332 byte body succeeded, a 34,952,536 byte one did
 not. The payload below is 50 MiB, so the direct path cannot carry it at all.
 
 A WARNING ABOUT THAT 413, IF YOU ARE ON A PORT FORWARD

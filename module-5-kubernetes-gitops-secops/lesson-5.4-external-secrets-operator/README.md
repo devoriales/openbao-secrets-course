@@ -5,8 +5,8 @@ Artifacts for lesson 5.4 of [OpenBao Secrets Management: Production Operations o
 The lesson itself lives on devoriales.com. This folder holds only what that lesson asks you
 to apply.
 
-Validated on 2026-08-22 against OpenBao **v2.6.1**, chart **openbao-0.28.6**, and the External
-Secrets Operator **2.8.0** (`ghcr.io/external-secrets/external-secrets:v2.8.0`). See
+Validated on 2026-08-22 against OpenBao **v2.6.2**, chart **openbao-0.29.2**, and the External
+Secrets Operator **2.9.0** (`ghcr.io/external-secrets/external-secrets:v2.9.0`). See
 [`VERSIONS.md`](../../VERSIONS.md) for the full pinned toolchain.
 
 ## Contents
@@ -25,7 +25,7 @@ Install ESO, then run the OpenBao side. Everything here needs the lesson 4.2 end
 ```bash
 helm repo add external-secrets https://charts.external-secrets.io
 helm install external-secrets external-secrets/external-secrets \
-  --version 2.8.0 -n external-secrets --create-namespace --wait
+  --version 2.9.0 -n external-secrets --create-namespace --wait
 
 kubectl -n openbao port-forward svc/openbao 8200:8200 &
 export BAO_ADDR=https://127.0.0.1:8200
@@ -53,7 +53,7 @@ kubectl -n apps logs -l app=reporting-consumer -f
 
 ## What the artifacts prove
 
-**The `openBao` provider cannot use Kubernetes auth in ESO 2.8.0.** Its auth options are
+**The `openBao` provider cannot use Kubernetes auth in ESO 2.9.0.** Its auth options are
 `appRole`, `tokenSecretRef` and `userPass`; the older `vault` provider adds `kubernetes`. A store
 using `openBao` with Kubernetes auth is rejected at admission with
 `strict decoding error: unknown field "spec.provider.openBao.auth.kubernetes"`. The `vault`

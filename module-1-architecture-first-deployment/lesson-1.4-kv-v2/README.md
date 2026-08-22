@@ -119,7 +119,7 @@ curl -H "X-Vault-Token: $BAO_TOKEN" ...   # 200
 curl -H "X-Bao-Token: $BAO_TOKEN"   ...   # 403
 ```
 
-`X-Bao-Token` is not a header OpenBao 2.6.1 accepts. This is the same pattern as the Agent
+`X-Bao-Token` is not a header OpenBao 2.6.2 accepts. This is the same pattern as the Agent
 injector annotations keeping their `vault.hashicorp.com/` prefix: the wire protocol stayed
 compatible even where the filesystem paths did not.
 

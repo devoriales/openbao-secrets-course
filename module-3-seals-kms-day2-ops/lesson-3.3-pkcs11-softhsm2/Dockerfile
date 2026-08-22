@@ -14,7 +14,7 @@
 #   docker build -t openbao-pkcs11:lab .
 #   k3d image import openbao-pkcs11:lab -c openbao-dev
 
-ARG BAO_VERSION=2.6.1
+ARG BAO_VERSION=2.6.2
 
 FROM openbao/openbao-ubi:${BAO_VERSION} AS bao
 

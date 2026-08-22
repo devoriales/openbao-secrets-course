@@ -45,7 +45,7 @@ else
 fi
 
 HELM_VER="$(helm version --short 2>/dev/null | sed -n 's/^v\([0-9]*\).*/\1/p')"
-[ "${HELM_VER:-0}" = "$WANT_HELM_MAJOR" ] || die "Helm ${HELM_VER:-unknown} found, this course requires Helm ${WANT_HELM_MAJOR}.x (validated on 3.21.3). The OpenBao chart has no Helm 4 test coverage upstream."
+[ "${HELM_VER:-0}" = "$WANT_HELM_MAJOR" ] || die "Helm ${HELM_VER:-unknown} found, this course requires Helm ${WANT_HELM_MAJOR}.x (validated on 3.21.4). The OpenBao chart has no Helm 4 test coverage upstream."
 ok "helm $(helm version --short)"
 
 # Disk headroom inside the Docker VM, which is not the same as host free space.

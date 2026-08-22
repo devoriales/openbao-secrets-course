@@ -5,7 +5,7 @@ Artifacts for lesson 4.2 of [OpenBao Secrets Management: Production Operations o
 The lesson itself lives on devoriales.com. This folder holds only what that lesson asks you
 to apply.
 
-Validated on 2026-08-12 against OpenBao **v2.6.1**, chart **openbao-0.28.6** and cert-manager
+Validated on 2026-08-12 against OpenBao **v2.6.2**, chart **openbao-0.29.2** and cert-manager
 **v1.21.1**. See [`VERSIONS.md`](../../VERSIONS.md) for the full pinned toolchain.
 
 This is where lesson 1.3's bootstrap ends. OpenBao's listener has been serving a cert-manager
