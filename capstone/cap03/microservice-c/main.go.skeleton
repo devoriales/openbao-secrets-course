@@ -1,0 +1,73 @@
+// CAP03 microservice C: AppRole, dynamic database credentials, and a lease this
+// service manages itself. A skeleton.
+//
+// Lesson 5.2 built the token half of this: login, LifetimeWatcher, and the day
+// the token hits token_max_ttl. Here there are TWO lifetimes, and conflating
+// them is the mistake this stage is designed to expose.
+//
+//   the token   authenticates you to OpenBao        token_ttl / token_max_ttl
+//   the lease   is the database credential's life   default_ttl / max_ttl on the role
+//
+// They renew separately, they expire separately, and a service that renews only
+// the first will present a dead database credential while its OpenBao session is
+// perfectly healthy.
+package main
+
+import (
+	"flag"
+	"log"
+	"os"
+	"time"
+
+	openbao "github.com/openbao/openbao/api/v2"
+)
+
+func main() {
+	// Flags, or the environment. The SecretID is the credential that has to be
+	// delivered carefully; lesson 2.5 is the argument for why.
+	// ...
+
+	// 1. TLS. The listener's CA, not the PKI root that signs PostgreSQL.
+	cfg := openbao.DefaultConfig()
+	// ? address, ? ConfigureTLS
+
+	// 2. AppRole login.
+	// ? client.Logical().Write("auth/approle/login", ...) then client.SetToken(...)
+
+	// 3. A watcher for the TOKEN.
+	//
+	// On DoneCh: the token can no longer be renewed. Re-authenticate. Logging it
+	// and carrying on is the bug from lesson 5.2.
+	// ?
+
+	// 4. Read the database credential and look at what came back.
+	//
+	//   creds.LeaseID          the handle CAP04 will revoke
+	//   creds.LeaseDuration    seconds, from the role's default_ttl
+	//   creds.Renewable        whether step 5 is even possible
+	//
+	// The fields are creds.Data["username"] and creds.Data["password"], with no
+	// data.data nesting. That nesting belongs to K/V v2 and to nothing else.
+	// ?
+
+	// 5. A SECOND watcher, for the LEASE.
+	//
+	// LifetimeWatcher takes any *api.Secret, so the same type handles both. What
+	// differs is what you do when each one ends:
+	//
+	//   token DoneCh   -> log in again
+	//   lease DoneCh   -> request a NEW credential, and reconnect the database
+	//                     pool with it
+	//
+	// Continuing to use the old credential after the lease ends is exactly the
+	// failure CAP04 will demonstrate deliberately, from the other side.
+	// ?
+
+	// 6. Do the work, using the credential, until told to stop.
+	// ?
+
+	_ = flag.Parse
+	_ = os.Getenv
+	_ = time.Second
+	_ = log.Printf
+}

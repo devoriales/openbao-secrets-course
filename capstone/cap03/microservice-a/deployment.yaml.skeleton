@@ -1,0 +1,62 @@
+# CAP03 microservice A: dynamic database credentials through the Agent sidecar.
+# A skeleton.
+#
+# Lesson 5.3 injected a static K/V secret. This one injects a credential with a
+# lease on it, which changes nothing about the annotations and everything about
+# what the sidecar is doing while your application runs.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: svc-a-sidecar
+  namespace: payments
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: svc-a-sidecar }
+  template:
+    metadata:
+      labels: { app: svc-a-sidecar }
+      annotations:
+        # The prefix is vault.hashicorp.com/, always. Lesson 5.3.
+        vault.hashicorp.com/agent-inject: # ?
+        vault.hashicorp.com/role: # the Kubernetes auth role bound to this pod's ServiceAccount
+
+        # THINK 1. The agent talks to OpenBao over TLS and needs the CA that
+        # signs OPENBAO'S LISTENER.
+        vault.hashicorp.com/tls-secret: # ?
+        vault.hashicorp.com/ca-cert: # ?
+
+        # The credential, and the shape your application wants it in.
+        vault.hashicorp.com/agent-inject-secret-db: # the database creds path
+        vault.hashicorp.com/agent-inject-template-db: |
+          # ? render whatever your application reads. Note that a dynamic
+          # credential has .Data.username and .Data.password directly, with no
+          # data.data nesting: that nesting is a K/V v2 property, not a
+          # universal one.
+
+        vault.hashicorp.com/agent-requests-cpu: "50m"
+        vault.hashicorp.com/agent-requests-mem: "64Mi"
+        vault.hashicorp.com/agent-limits-cpu: "100m"
+        vault.hashicorp.com/agent-limits-mem: "128Mi"
+    spec:
+      serviceAccountName: # ?
+      containers:
+        - name: app
+          image: # something with a psql client is convenient here
+          command: # ? read the rendered file, connect, do one query, sleep
+          volumeMounts:
+            # THINK 2. Your application connects to PostgreSQL, which serves a
+            # certificate issued by OpenBao's PKI in CAP02. That is a DIFFERENT
+            # CA from the one the agent uses above.
+            #
+            # Mount both, or watch your application fail with
+            #   SSL error: certificate verify failed
+            # while the sidecar beside it is perfectly happy. Two anchors in one
+            # pod, for two different connections.
+            - name: # ?
+              mountPath: # ?
+              readOnly: true
+      volumes:
+        - name: # ?
+          secret:
+            secretName: # ?
