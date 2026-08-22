@@ -1,0 +1,77 @@
+# CAP01, the unsealer instance. A skeleton: the keys are here, the values are
+# yours.
+#
+# This OpenBao exists to hold one Transit key that wraps the production
+# cluster's root key. It is small, it is Shamir sealed, and it is the one thing
+# a human unseals by hand after a full outage. Everything else follows it.
+#
+# Install it into its own namespace, with its own certificate, before you touch
+# the production values.
+#
+#   helm install unsealer openbao/openbao --version <chart version> \
+#     -n unsealer --create-namespace -f values-unsealer.yaml
+
+global:
+  # TLS on the listener means this must be false, or the chart's probes speak
+  # http to an https port and the pod never becomes Ready. Lesson 1.3.
+  tlsDisable: # ?
+
+server:
+  image:
+    repository: # ?
+    tag: # the pinned version from VERSIONS.md
+
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address         = "[::]:8200"
+        cluster_address = "[::]:8201"
+        # Point these at the certificate you mount below.
+        tls_cert_file   = # ?
+        tls_key_file    = # ?
+      }
+
+      # File storage is enough here. This instance holds one key and no
+      # application data, and it is not part of the Raft cluster.
+      storage "file" {
+        path = # ?
+      }
+
+  # Mount the cert-manager Secret. It is a kubernetes.io/tls Secret, so it
+  # carries tls.crt, tls.key and ca.crt.
+  volumes:
+    - name: tls
+      secret:
+        secretName: # ?
+  volumeMounts:
+    - name: tls
+      mountPath: # ?
+      readOnly: true
+
+  # So the CLI inside the pod talks to itself over TLS and trusts the CA.
+  extraEnvironmentVars:
+    BAO_ADDR: # ?
+    BAO_CACERT: # ?
+
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    storageClass: # k3d's provisioner
+
+  # Readiness with no path is the chart's exec probe, whose exit code is the
+  # seal status. Liveness stays off: lesson 1.3 explains why.
+  readinessProbe:
+    enabled: true
+  livenessProbe:
+    enabled: false
+
+# Neither of these belongs on the unsealer. It serves one Transit key to one
+# client, and every extra surface on it is a surface on the thing that unseals
+# your production cluster.
+injector:
+  enabled: # ?
+ui:
+  enabled: # ?

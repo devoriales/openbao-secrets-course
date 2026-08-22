@@ -24,11 +24,21 @@ commonly misunderstood thing about running OpenBao.
 
 ## Layout
 
+One folder per stage. Each carries the skeletons, the runbook and the acceptance
+criteria for that stage, and nothing from the stage after it.
+
 ```
 capstone/
-  manifests/      Kubernetes manifests you apply
-  helm-values/    Helm values files for the OpenBao and supporting charts
+  cap01/          cluster and OpenBao deployment
+  cap02/          database and PKI integration
+  cap03/          workload security, three consumption patterns
+  cap04/          hardening and auditing
+  cap05/          the seal outage drill
 ```
+
+Files ending in `.skeleton` name every key you need and leave the values blank.
+Copy them to the real filename, fill them in, and keep your version: later
+stages build on the cluster this one produces.
 
 ## Before you start
 

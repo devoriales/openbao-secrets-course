@@ -1,0 +1,68 @@
+# CAP01, the two certificates. A skeleton.
+#
+# cert-manager and the selfsigned-bootstrap ClusterIssuer from lesson 1.3 are
+# doing the issuing here. In CAP02 you replace the production one with a
+# certificate OpenBao issues itself, the way lesson 4.2 did, which is why this
+# stage keeps the bootstrap issuer rather than pretending it is the end state.
+#
+# The interesting field is dnsNames, and it is interesting for exactly one of
+# the two certificates.
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: unsealer-tls
+  namespace: unsealer
+spec:
+  secretName: # ?
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer
+  commonName: # ?
+  dnsNames:
+    # Every name a client might use to reach the unsealer. There is one client:
+    # the production cluster, and it will use the service's fully qualified
+    # name. Add the shorter forms and localhost anyway; you will want them from
+    # inside the pod.
+    - # ?
+  ipAddresses:
+    - 127.0.0.1
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: openbao-tls
+  namespace: openbao
+spec:
+  secretName: # ?
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer
+  commonName: # ?
+  dnsNames:
+    # THINK. Two kinds of name have to be in here, and missing the second kind
+    # is the most common way this stage fails.
+    #
+    # The first kind is obvious: the service, for applications.
+    #
+    # The second kind is not: Raft peers do not talk to the service. A node
+    # dials another node directly, by its pod name on the headless service, and
+    # verifies the certificate it gets back. Work out those names from the
+    # StatefulSet and the headless service, and put every one of them here.
+    #
+    # If you forget them the cluster comes up, each node is individually
+    # healthy, and `raft list-peers` shows one node. The handshake failure is in
+    # the joining node's log, not in anything kubectl shows you.
+    - # ?
+  ipAddresses:
+    - 127.0.0.1
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
