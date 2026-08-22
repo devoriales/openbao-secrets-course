@@ -1,0 +1,40 @@
+# CAP02, making PostgreSQL actually serve the certificate. A skeleton.
+#
+# Issuing a certificate is not the same as using one. This patch is what turns
+# a Secret into a database that speaks TLS, and it is where the file permission
+# problem lives.
+#
+#   kubectl -n databases patch statefulset postgres --type=strategic \
+#     --patch-file postgres-tls.patch.yaml
+#   kubectl -n databases delete pod postgres-0     # StatefulSets do not roll on patch alone
+spec:
+  template:
+    spec:
+      # THINK 1. PostgreSQL refuses to start if the key file is group or world
+      # readable, and a Secret volume is mode 0644 owned by root by default.
+      # Two things have to line up: the file mode on the volume, and a group the
+      # postgres user is actually in.
+      #
+      # The error, if you get it wrong, is in the pod log rather than in
+      # kubectl:
+      #   private key file "/etc/postgres-tls/tls.key" has group or world access
+      securityContext:
+        fsGroup: # ? the uid/gid postgres runs as in this image
+
+      volumes:
+        - name: tls
+          secret:
+            secretName: # ?
+            defaultMode: # ? decimal, and it is not 0600
+
+      containers:
+        - name: postgres
+          volumeMounts:
+            - name: tls
+              mountPath: # ?
+              readOnly: true
+
+          # THINK 2. The official image reads no ssl settings from the
+          # environment. These are server parameters, so they go to postgres
+          # itself. Three of them: on, the certificate, the key.
+          args: # ?

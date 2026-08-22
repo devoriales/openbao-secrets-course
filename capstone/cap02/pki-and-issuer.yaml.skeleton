@@ -1,0 +1,106 @@
+# CAP02, the PKI half. A skeleton.
+#
+# Lesson 4.2 pointed cert-manager at OpenBao to re-issue OpenBao's own listener
+# certificate. Here you point it at OpenBao to issue a certificate for something
+# else: PostgreSQL. Same mechanism, and one trap that only shows up on the
+# second use.
+#
+# On the OpenBao side you need, and these are not in this file:
+#   - pki/ and pki_int/ configured (lesson 4.2's configure-pki.sh does it)
+#   - a role under pki_int/roles/ for server certificates in this namespace
+#   - a policy granting create/update on pki_int/sign/<that role>
+#   - a Kubernetes auth role bound to the ServiceAccount below
+---
+# cert-manager authenticates as this ServiceAccount and OpenBao's Kubernetes
+# auth role must be bound to it, in THIS namespace.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cert-manager-pki
+  namespace: databases
+---
+# cert-manager's own controller needs permission to mint a token for that
+# ServiceAccount. Miss this and the Issuer never becomes Ready, with an error
+# about creating a token rather than about OpenBao.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cert-manager-token-creator
+  namespace: databases
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: [# ?]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cert-manager-token-creator
+  namespace: databases
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cert-manager-token-creator
+subjects:
+  - kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: openbao-pki
+  namespace: databases
+spec:
+  vault:
+    server: # the production cluster's service, https
+    path: # pki_int/sign/<your role>
+
+    # THINK. This is the trap, and it is the same ordering problem lesson 4.2
+    # spent a whole script on, wearing different clothes.
+    #
+    # caBundle is what cert-manager uses to verify OPENBAO'S LISTENER, not what
+    # OpenBao signs certificates with. At this point in the capstone the
+    # listener still serves the bootstrap certificate from CAP01, so the bundle
+    # is the bootstrap CA. Put the PKI root here instead, because it feels like
+    # the right answer, and the Issuer fails with:
+    #
+    #   Failed to initialize Vault client: ... x509: certificate signed by
+    #   unknown authority
+    #
+    # which reads like a problem with your PKI and is not.
+    caBundle: # ?
+
+    auth:
+      kubernetes:
+        role: # ?
+        mountPath: /v1/auth/kubernetes
+        serviceAccountRef:
+          name: # ?
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: postgres-tls
+  namespace: databases
+spec:
+  secretName: postgres-tls
+  issuerRef:
+    name: openbao-pki
+    kind: Issuer
+  commonName: # ?
+  dnsNames:
+    # Every name a client will use. The database is reached through its service,
+    # and the certificate has to match whichever form the client dials.
+    - # ?
+  duration: # ? short, and shorter than you think
+  renewBefore: # ?
+  privateKey:
+    # THINK. Whatever you put here has to match the key_type on the PKI role.
+    # The role defaults to rsa, so asking for ECDSA gives you a
+    # CertificateRequest stuck in SigningError with
+    #   role requires keys of type rsa
+    # on the OpenBao side and nothing obviously wrong on the Kubernetes side.
+    algorithm: # ?
+    size: # ?

@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+#
+# CAP02, the database half. A skeleton: the commands are here, the arguments are
+# yours.
+#
+# Lesson 4.1 built this against a standalone OpenBao. Nothing about it changes on
+# a three node cluster, which is worth noticing: the engine is state inside the
+# barrier, so it replicates like everything else.
+set -euo pipefail
+: "${BAO_ADDR:?}"; : "${BAO_TOKEN:?}"; : "${BAO_CACERT:?}"
+
+# 1. The engine.
+bao secrets enable database
+
+# 2. The connection.
+#
+# The username and password here are the bootstrap credential from the Postgres
+# manifest, the one that is committed in plain text. It stops being valid in
+# step 5, which is the point of the stage.
+#
+# allowed_roles is not decoration. Without it any role in the mount can use this
+# connection, which quietly undoes the separation you are about to build.
+bao write database/config/appdb \
+  plugin_name=# ? \
+  allowed_roles=# ? \
+  connection_url=# ? see the note below \
+  username=# ? \
+  password=# ?
+
+# The connection_url is a template, and the {{username}} and {{password}}
+# placeholders are literal: OpenBao substitutes the credential it currently
+# holds. Which is how rotate-root can change that credential without you
+# rewriting this config.
+#
+# Decide the sslmode now. In step 8 Postgres starts serving a certificate issued
+# by OpenBao's own PKI, and this connection can then verify it. Getting there in
+# one step is fine; pretending you were verifying all along is not.
+
+# 3. A role that issues short lived credentials.
+#
+# creation_statements runs when a credential is requested, so the GRANT covers
+# the tables that exist at that moment. Lesson 4.1 has the ALTER DEFAULT
+# PRIVILEGES story; the seed data here already applies it.
+bao write database/roles/payments-ro \
+  db_name=# ? \
+  creation_statements=# ? \
+  default_ttl=# ? \
+  max_ttl=# ?
+
+# 4. Prove a credential works, from somewhere that is not the database pod.
+#
+# THINK. `kubectl exec postgres-0 -- psql -U ...` connects over the loopback
+# interface, and the stock pg_hba.conf grants `trust` there. Every password
+# works, including a wrong one. If you verify a rotation that way you will
+# conclude it did nothing.
+#
+# Run the check from a separate pod, against the service name.
+
+# 5. rotate-root, and the verification that means something.
+bao write -f database/rotate-root/appdb
+
+# After this nobody knows the openbao_admin password, including you and
+# including the manifest in git. Verify BOTH halves:
+#   a. the bootstrap password is refused, from a client pod over the service
+#   b. OpenBao can still issue working credentials
+#
+# (a) without (b) means you broke the engine. (b) without (a) means you have not
+# actually rotated anything.
